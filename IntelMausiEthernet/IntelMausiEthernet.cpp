@@ -172,8 +172,8 @@ bool IntelMausi::init(OSDictionary *properties)
         pciDeviceData.revision = 0;
         adapterData.pdev = &pciDeviceData;
         mtu = ETH_DATA_LEN;
-        wolCapable = false;
-        wolActive = false;
+        wolCapable = true;
+        wolActive = true;
         enableTSO4 = false;
         enableTSO6 = false;
         enableCSO6 = false;

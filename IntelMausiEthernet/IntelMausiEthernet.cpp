@@ -133,6 +133,9 @@ bool IntelMausi::init(OSDictionary *properties)
     
     result = super::init(properties);
     
+    bool tmp = 0;
+    bool wol = ! PE_parse_boot_argn("-mausi_no_wol", &tmp, 0);
+    
     if (result) {
         workLoop = NULL;
         commandGate = NULL;
@@ -172,8 +175,8 @@ bool IntelMausi::init(OSDictionary *properties)
         pciDeviceData.revision = 0;
         adapterData.pdev = &pciDeviceData;
         mtu = ETH_DATA_LEN;
-        wolCapable = true;
-        wolActive = true;
+        wolCapable = wol;
+        wolActive = wol;
         enableTSO4 = false;
         enableTSO6 = false;
         enableCSO6 = false;

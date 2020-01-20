@@ -1,5 +1,8 @@
 IntelMausi Changelog
 ====================
+#### v1.0.2b
+- Added WOL functionality
+
 #### v1.0.2
 - Merged changes from 2.5.0d14
 

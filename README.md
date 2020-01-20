@@ -1,3 +1,17 @@
+# IntelMausi-WOL
+Fork from IntelMausi with WOL functionality after complete shutdown.
+https://github.com/acidanthera/IntelMausi
+
+WOL is enabled by default.
+To disable WOL just add the bootargument "-mausi_no_wol".
+
+This only works as a replacement for IntelMausi.kext.
+Please make a backup EFI folder on a thumbdrive bevore you try IntelMausi-WOL.kext.
+
+@xenio came up with this idea:
+https://github.com/Mieze/IntelMausiEthernet/issues/17#issuecomment-424290662
+Huge thanks to him!
+
 # IntelMausi
 
 [![Build Status](https://travis-ci.com/acidanthera/IntelMausi.svg?branch=master)](https://travis-ci.com/acidanthera/IntelMausi) [![Scan Status](https://scan.coverity.com/projects/18406/badge.svg?flat=1)](https://scan.coverity.com/projects/18406)

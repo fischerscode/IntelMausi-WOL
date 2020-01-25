@@ -1355,8 +1355,9 @@ IOReturn IntelMausi::setWakeOnMagicPacket(bool active)
     DebugLog("setWakeOnMagicPacket() ===>\n");
     
     if (wolCapable) {
-        wolActive = active;
-        DebugLog("Ethernet [IntelMausi]: Wake on magic packet %s.\n", active ? "enabled" : "disabled");
+        bool tmp = 0;
+        wolActive = ! PE_parse_boot_argn("-mausi_no_wol", &tmp, 0);
+        DebugLog("Ethernet [IntelMausi]: Wake on magic packet %s.\n", wolActive ? "enabled" : "disabled");
         result = kIOReturnSuccess;
     }
     

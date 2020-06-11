@@ -6,7 +6,9 @@ WOL is enabled by default.
 To disable WOL just add the bootargument "-mausi_no_wol".
 
 This only works as a replacement for IntelMausi.kext.
-Please make a backup EFI folder on a thumbdrive bevore you try IntelMausi-WOL.kext.
+Please make a backup EFI folder on a thumbdrive before you try IntelMausi-WOL.kext.
+
+If you are currently using IntelMausiEthernet.kext you should have a look at https://github.com/maaeps/IntelMausiEthernet-WOL instead.
 
 @xenio came up with this idea:
 https://github.com/Mieze/IntelMausiEthernet/issues/17#issuecomment-424290662

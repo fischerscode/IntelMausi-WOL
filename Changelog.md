@@ -1,4 +1,4 @@
-IntelMausi Changelog
+IntelMausi-WOL Changelog
 ====================
 #### v1.0.4
 - Added MacKernelSDK with Xcode 12 compatibility

@@ -61,7 +61,7 @@
 
 /* Begin PBXFileReference section */
 		CE8DA0EB2517E5D9008C44E8 /* libkmod.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libkmod.a; path = ../Lilu/MacKernelSDK/Library/x86_64/libkmod.a; sourceTree = "<group>"; };
-		CE8DA2622519ADB6008C44E8 /* IntelSnowMausi.kext */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = IntelSnowMausi.kext; sourceTree = BUILT_PRODUCTS_DIR; };
+		CE8DA2622519ADB6008C44E8 /* IntelSnowMausi-WOL.kext */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "IntelSnowMausi-WOL.kext"; sourceTree = BUILT_PRODUCTS_DIR; };
 		CEAFDB4E22D0C66400728EF7 /* Changelog.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = Changelog.md; sourceTree = SOURCE_ROOT; };
 		D31D52021A566D8000DD1F17 /* IntelMausiSetup.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = IntelMausiSetup.cpp; sourceTree = "<group>"; };
 		D31D52061A566F4800DD1F17 /* IntelMausiHardware.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = IntelMausiHardware.cpp; sourceTree = "<group>"; };
@@ -161,8 +161,8 @@
 		D3CB5B771A4394A800A37FAA /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				D3F318C21AB3B0E300DA9D9A /* IntelMausi.kext */,
-				CE8DA2622519ADB6008C44E8 /* IntelSnowMausi.kext */,
+				D3F318C21AB3B0E300DA9D9A /* IntelMausi-WOL.kext */,
+				CE8DA2622519ADB6008C44E8 /* IntelSnowMausi-WOL.kext */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -267,9 +267,9 @@
 /* End PBXHeadersBuildPhase section */
 
 /* Begin PBXNativeTarget section */
-		CE8DA2442519ADB6008C44E8 /* IntelSnowMausi */ = {
+		CE8DA2442519ADB6008C44E8 /* IntelSnowMausi-WOL */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = CE8DA25F2519ADB6008C44E8 /* Build configuration list for PBXNativeTarget "IntelSnowMausi" */;
+			buildConfigurationList = CE8DA25F2519ADB6008C44E8 /* Build configuration list for PBXNativeTarget "IntelSnowMausi-WOL" */;
 			buildPhases = (
 				CE8DA2452519ADB6008C44E8 /* Sources */,
 				CE8DA24F2519ADB6008C44E8 /* Frameworks */,
@@ -282,14 +282,14 @@
 			);
 			dependencies = (
 			);
-			name = IntelSnowMausi;
+			name = "IntelSnowMausi-WOL";
 			productName = IntelMausiEthernet;
-			productReference = CE8DA2622519ADB6008C44E8 /* IntelSnowMausi.kext */;
+			productReference = CE8DA2622519ADB6008C44E8 /* IntelSnowMausi-WOL.kext */;
 			productType = "com.apple.product-type.kernel-extension";
 		};
-		D3F3189D1AB3B0E300DA9D9A /* IntelMausi */ = {
+		D3F3189D1AB3B0E300DA9D9A /* IntelMausi-WOL */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = D3F318BF1AB3B0E300DA9D9A /* Build configuration list for PBXNativeTarget "IntelMausi" */;
+			buildConfigurationList = D3F318BF1AB3B0E300DA9D9A /* Build configuration list for PBXNativeTarget "IntelMausi-WOL" */;
 			buildPhases = (
 				D3F3189E1AB3B0E300DA9D9A /* Sources */,
 				D3F318A81AB3B0E300DA9D9A /* Frameworks */,
@@ -303,7 +303,7 @@
 			dependencies = (
 				CE8DA2732519AE4E008C44E8 /* PBXTargetDependency */,
 			);
-			name = IntelMausi;
+			name = "IntelMausi-WOL";
 			productName = IntelMausiEthernet;
 			productReference = D3F318C21AB3B0E300DA9D9A /* IntelMausi-WOL.kext */;
 			productType = "com.apple.product-type.kernel-extension";
@@ -330,8 +330,8 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				D3F3189D1AB3B0E300DA9D9A /* IntelMausi */,
-				CE8DA2442519ADB6008C44E8 /* IntelSnowMausi */,
+				D3F3189D1AB3B0E300DA9D9A /* IntelMausi-WOL */,
+				CE8DA2442519ADB6008C44E8 /* IntelSnowMausi-WOL */,
 			);
 		};
 /* End PBXProject section */
@@ -447,7 +447,7 @@
 /* Begin PBXTargetDependency section */
 		CE8DA2732519AE4E008C44E8 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = CE8DA2442519ADB6008C44E8 /* IntelSnowMausi */;
+			target = CE8DA2442519ADB6008C44E8 /* IntelSnowMausi-WOL */;
 			targetProxy = CE8DA2722519AE4E008C44E8 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
@@ -638,15 +638,11 @@
 					"$(inherited)",
 					"$(PROJECT_DIR)/MacKernelSDK/Library/x86_64",
 				);
-				MODULE_NAME = "de.maaeps.IntelMausi-WOL";
-				MODULE_VERSION = 1.0.3;
-				PRODUCT_BUNDLE_IDENTIFIER = "de.maaeps.${PRODUCT_NAME:rfc1034identifier}";
-				PRODUCT_NAME = "IntelMausi-WOL";
 				MACOSX_DEPLOYMENT_TARGET = 10.9;
-				MODULE_NAME = de.maaeps.IntelMausi-WOL;
+				MODULE_NAME = "de.maaeps.IntelMausi-WOL";
 				MODULE_VERSION = 1.0.4;
 				PRODUCT_BUNDLE_IDENTIFIER = "de.maaeps.${PRODUCT_NAME:rfc1034identifier}";
-				PRODUCT_NAME = IntelMausi-WOL;
+				PRODUCT_NAME = "IntelMausi-WOL";
 				SDKROOT = macosx;
 				WRAPPER_EXTENSION = kext;
 			};
@@ -674,7 +670,7 @@
 				MODULE_NAME = as.acidanthera.mieze.IntelMausi;
 				MODULE_VERSION = 1.0.4;
 				PRODUCT_BUNDLE_IDENTIFIER = "de.maaeps.${PRODUCT_NAME:rfc1034identifier}";
-				PRODUCT_NAME = IntelMausi-WOL;
+				PRODUCT_NAME = "IntelMausi-WOL";
 				SDKROOT = macosx;
 				WRAPPER_EXTENSION = kext;
 			};
@@ -683,7 +679,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		CE8DA25F2519ADB6008C44E8 /* Build configuration list for PBXNativeTarget "IntelSnowMausi" */ = {
+		CE8DA25F2519ADB6008C44E8 /* Build configuration list for PBXNativeTarget "IntelSnowMausi-WOL" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				CE8DA2602519ADB6008C44E8 /* Debug */,
@@ -701,7 +697,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		D3F318BF1AB3B0E300DA9D9A /* Build configuration list for PBXNativeTarget "IntelMausi" */ = {
+		D3F318BF1AB3B0E300DA9D9A /* Build configuration list for PBXNativeTarget "IntelMausi-WOL" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				D3F318C01AB3B0E300DA9D9A /* Debug */,

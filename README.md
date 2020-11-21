@@ -14,6 +14,14 @@ If you are currently using IntelMausiEthernet.kext you should have a look at htt
 https://github.com/Mieze/IntelMausiEthernet/issues/17#issuecomment-424290662
 Huge thanks to him!
 
+### Build IntelMausi-WOL your self
+1. clone the [MacKernelSDK](https://github.com/acidanthera/MacKernelSDK) in the repository
+   `git clone https://github.com/acidanthera/MacKernelSDK`
+2. build the project
+   `xcodebuild -configuration Release`
+3. find the build kext in build/Release
+   `open build/Release`
+
 # IntelMausi
 
 [![Build Status](https://travis-ci.com/acidanthera/IntelMausi.svg?branch=master)](https://travis-ci.com/acidanthera/IntelMausi) [![Scan Status](https://scan.coverity.com/projects/18406/badge.svg?flat=1)](https://scan.coverity.com/projects/18406)

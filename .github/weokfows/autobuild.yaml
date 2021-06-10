@@ -1,0 +1,25 @@
+name: Build Kext
+
+on:
+  - push
+  - pull_request
+
+jobs:
+  build-kext:
+    runs-on: macOS-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/checkout@v2
+        with:
+          repository: acidanthera/MacKernelSDK
+          path: MacKernelSDK
+      - run: xcodebuild -configuration Release
+      - run: xcodebuild -configuration Debug
+      - uses: actions/upload-artifact@v1
+        with:
+          path: build/Release/IntelMausi-WOL-**-RELEASE.zip
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v1
+        with:
+          path: build/Debug/IntelMausi-WOL-**-DEBUG.zip
+          if-no-files-found: error

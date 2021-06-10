@@ -8,18 +8,21 @@ on:
 jobs:
   build-kext:
     runs-on: macos-latest
+    strategy:
+      matrix:
+        conf:
+          - "Release"
+          - "Debug"
     steps:
       - uses: actions/checkout@v2
       - uses: actions/checkout@v2
         with:
           repository: acidanthera/MacKernelSDK
           path: MacKernelSDK
-      - run: xcodebuild -configuration Release
-      - run: xcodebuild -configuration Debug
+      - run: xcodebuild -configuration ${{ matrix.conf }}
       - uses: actions/upload-artifact@v2
         with:
-          name: IntelMausi-WOL-kexts
+          name: IntelMausi-WOL-${{ matrix.conf }}
           path: |
-            build/Release/IntelMausi-WOL-**-RELEASE.zip
-            build/Debug/IntelMausi-WOL-**-DEBUG.zip
+            build/${{ matrix.conf }}/IntelMausi-WOL-**-${{ matrix.conf }}.zip
           if-no-files-found: error

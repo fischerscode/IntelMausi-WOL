@@ -314,7 +314,7 @@
 		D3CB5B6C1A4394A800A37FAA /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastUpgradeCheck = 1200;
+				LastUpgradeCheck = 1220;
 				ORGANIZATIONNAME = "Laura Müller";
 			};
 			buildConfigurationList = D3CB5B6F1A4394A800A37FAA /* Build configuration list for PBXProject "IntelMausiEthernet" */;
@@ -473,7 +473,7 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.6;
 				MODULE_NAME = "de.maaeps.IntelMausi-WOL";
-				MODULE_VERSION = 1.0.4;
+				MODULE_VERSION = 1.0.5;
 				PRODUCT_BUNDLE_IDENTIFIER = "de.maaeps.${PRODUCT_NAME:rfc1034identifier}";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
@@ -501,7 +501,7 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.6;
 				MODULE_NAME = "de.maaeps.IntelMausi-WOL";
-				MODULE_VERSION = 1.0.4;
+				MODULE_VERSION = 1.0.5;
 				PRODUCT_BUNDLE_IDENTIFIER = "de.maaeps.${PRODUCT_NAME:rfc1034identifier}";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
@@ -640,7 +640,7 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.9;
 				MODULE_NAME = "de.maaeps.IntelMausi-WOL";
-				MODULE_VERSION = 1.0.4;
+				MODULE_VERSION = 1.0.5;
 				PRODUCT_BUNDLE_IDENTIFIER = "de.maaeps.${PRODUCT_NAME:rfc1034identifier}";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
@@ -668,7 +668,7 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.9;
 				MODULE_NAME = "de.maaeps.IntelMausi-WOL";
-				MODULE_VERSION = 1.0.4;
+				MODULE_VERSION = 1.0.5;
 				PRODUCT_BUNDLE_IDENTIFIER = "de.maaeps.${PRODUCT_NAME:rfc1034identifier}";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;

@@ -22,57 +22,52 @@
 #include "IntelMausiEthernet.h"
 #include <kdp/kdp_support.h>
 
-#pragma mark --- function prototypes ---
-
-static inline void prepareTSO4(mbuf_t m, UInt32 *mssHeaderSize, UInt32 *payloadSize);
-static inline void prepareTSO6(mbuf_t m, UInt32 *mssHeaderSize, UInt32 *payloadSize);
-
 #pragma mark --- private data ---
 
 static const struct intelDevice deviceTable[] = {
     { .pciDevId = E1000_DEV_ID_ICH8_IFE, .device = board_ich8lan, .deviceName = "82562V", .deviceInfo = &e1000_ich8_info },
-	{ .pciDevId = E1000_DEV_ID_ICH8_IFE_G, .device = board_ich8lan, .deviceName = "82562G", .deviceInfo = &e1000_ich8_info },
-	{ .pciDevId = E1000_DEV_ID_ICH8_IFE_GT, .device = board_ich8lan, .deviceName = "82562GT", .deviceInfo = &e1000_ich8_info },
-	{ .pciDevId = E1000_DEV_ID_ICH8_IGP_AMT, .device = board_ich8lan, .deviceName = "82566DM", .deviceInfo = &e1000_ich8_info },
-	{ .pciDevId = E1000_DEV_ID_ICH8_IGP_C, .device = board_ich8lan, .deviceName = "82566DC", .deviceInfo = &e1000_ich8_info },
-	{ .pciDevId = E1000_DEV_ID_ICH8_IGP_M, .device = board_ich8lan, .deviceName = "82566MC", .deviceInfo = &e1000_ich8_info },
-	{ .pciDevId = E1000_DEV_ID_ICH8_IGP_M_AMT, .device = board_ich8lan, .deviceName = "82566MM", .deviceInfo = &e1000_ich8_info },
-	{ .pciDevId = E1000_DEV_ID_ICH8_82567V_3, .device = board_ich8lan, .deviceName = "82567V3", .deviceInfo = &e1000_ich8_info },
-    
-	{ .pciDevId = E1000_DEV_ID_ICH9_IFE, .device = board_ich9lan, .deviceName = "82562V2", .deviceInfo = &e1000_ich9_info },
-	{ .pciDevId = E1000_DEV_ID_ICH9_IFE_G, .device = board_ich9lan, .deviceName = "82562G2", .deviceInfo = &e1000_ich9_info },
-	{ .pciDevId = E1000_DEV_ID_ICH9_IFE_GT, .device = board_ich9lan, .deviceName = "82562GT2", .deviceInfo = &e1000_ich9_info },
-	{ .pciDevId = E1000_DEV_ID_ICH9_IGP_AMT, .device = board_ich9lan, .deviceName = "82566DM2", .deviceInfo = &e1000_ich9_info },
-	{ .pciDevId = E1000_DEV_ID_ICH9_IGP_C, .device = board_ich9lan, .deviceName = "82566DC2", .deviceInfo = &e1000_ich9_info },
-	{ .pciDevId = E1000_DEV_ID_ICH9_BM, .device = board_ich9lan, .deviceName = "82567LM4", .deviceInfo = &e1000_ich9_info },
-	{ .pciDevId = E1000_DEV_ID_ICH9_IGP_M, .device = board_ich9lan, .deviceName = "82567LF", .deviceInfo = &e1000_ich9_info },
-	{ .pciDevId = E1000_DEV_ID_ICH9_IGP_M_AMT, .device = board_ich9lan, .deviceName = "82567LM", .deviceInfo = &e1000_ich9_info },
-	{ .pciDevId = E1000_DEV_ID_ICH9_IGP_M_V, .device = board_ich9lan, .deviceName = "82567V", .deviceInfo = &e1000_ich9_info },
-    
-	{ .pciDevId = E1000_DEV_ID_ICH10_R_BM_LM, .device = board_ich9lan, .deviceName = "82567LM2", .deviceInfo = &e1000_ich9_info },
-	{ .pciDevId = E1000_DEV_ID_ICH10_R_BM_LF, .device = board_ich9lan, .deviceName = "82567LF2", .deviceInfo = &e1000_ich9_info },
-	{ .pciDevId = E1000_DEV_ID_ICH10_R_BM_V, .device = board_ich9lan, .deviceName = "82567V2", .deviceInfo = &e1000_ich9_info },
-    
-	{ .pciDevId = E1000_DEV_ID_ICH10_D_BM_LM, .device = board_ich10lan, .deviceName = "82567LM3", .deviceInfo = &e1000_ich10_info },
-	{ .pciDevId = E1000_DEV_ID_ICH10_D_BM_LF, .device = board_ich10lan, .deviceName = "82567LF3", .deviceInfo = &e1000_ich10_info },
-	{ .pciDevId = E1000_DEV_ID_ICH10_D_BM_V, .device = board_ich10lan, .deviceName = "82567V4", .deviceInfo = &e1000_ich10_info },
-    
-	{ .pciDevId = E1000_DEV_ID_PCH_M_HV_LM, .device = board_pchlan, .deviceName = "82578LM", .deviceInfo = &e1000_pch_info },
-	{ .pciDevId = E1000_DEV_ID_PCH_M_HV_LC, .device = board_pchlan, .deviceName = "82578LC", .deviceInfo = &e1000_pch_info },
-	{ .pciDevId = E1000_DEV_ID_PCH_D_HV_DM, .device = board_pchlan, .deviceName = "82578DM", .deviceInfo = &e1000_pch_info },
-	{ .pciDevId = E1000_DEV_ID_PCH_D_HV_DC, .device = board_pchlan, .deviceName = "82578DC", .deviceInfo = &e1000_pch_info },
-    
-	{ .pciDevId = E1000_DEV_ID_PCH2_LV_LM, .device = board_pch2lan, .deviceName = "82579LM", .deviceInfo = &e1000_pch2_info },
-	{ .pciDevId = E1000_DEV_ID_PCH2_LV_V, .device = board_pch2lan, .deviceName = "82579V", .deviceInfo = &e1000_pch2_info },
-    
-	{ .pciDevId = E1000_DEV_ID_PCH_LPT_I217_LM, .device = board_pch_lpt, .deviceName = "I217LM", .deviceInfo = &e1000_pch_lpt_info },
-	{ .pciDevId = E1000_DEV_ID_PCH_LPT_I217_V, .device = board_pch_lpt, .deviceName = "I217V", .deviceInfo = &e1000_pch_lpt_info },
-	{ .pciDevId = E1000_DEV_ID_PCH_LPTLP_I218_LM, .device = board_pch_lpt, .deviceName = "I218LM", .deviceInfo = &e1000_pch_lpt_info },
-	{ .pciDevId = E1000_DEV_ID_PCH_LPTLP_I218_V, .device = board_pch_lpt, .deviceName = "I218V", .deviceInfo = &e1000_pch_lpt_info },
-	{ .pciDevId = E1000_DEV_ID_PCH_I218_LM2, .device = board_pch_lpt, .deviceName = "I218LM2", .deviceInfo = &e1000_pch_lpt_info },
-	{ .pciDevId = E1000_DEV_ID_PCH_I218_V2, .device = board_pch_lpt, .deviceName = "I218V2", .deviceInfo = &e1000_pch_lpt_info },
-	{ .pciDevId = E1000_DEV_ID_PCH_I218_LM3, .device = board_pch_lpt, .deviceName = "I218LM3", .deviceInfo = &e1000_pch_lpt_info },
-	{ .pciDevId = E1000_DEV_ID_PCH_I218_V3, .device = board_pch_lpt, .deviceName = "I218V3", .deviceInfo = &e1000_pch_lpt_info },
+    { .pciDevId = E1000_DEV_ID_ICH8_IFE_G, .device = board_ich8lan, .deviceName = "82562G", .deviceInfo = &e1000_ich8_info },
+    { .pciDevId = E1000_DEV_ID_ICH8_IFE_GT, .device = board_ich8lan, .deviceName = "82562GT", .deviceInfo = &e1000_ich8_info },
+    { .pciDevId = E1000_DEV_ID_ICH8_IGP_AMT, .device = board_ich8lan, .deviceName = "82566DM", .deviceInfo = &e1000_ich8_info },
+    { .pciDevId = E1000_DEV_ID_ICH8_IGP_C, .device = board_ich8lan, .deviceName = "82566DC", .deviceInfo = &e1000_ich8_info },
+    { .pciDevId = E1000_DEV_ID_ICH8_IGP_M, .device = board_ich8lan, .deviceName = "82566MC", .deviceInfo = &e1000_ich8_info },
+    { .pciDevId = E1000_DEV_ID_ICH8_IGP_M_AMT, .device = board_ich8lan, .deviceName = "82566MM", .deviceInfo = &e1000_ich8_info },
+    { .pciDevId = E1000_DEV_ID_ICH8_82567V_3, .device = board_ich8lan, .deviceName = "82567V3", .deviceInfo = &e1000_ich8_info },
+
+    { .pciDevId = E1000_DEV_ID_ICH9_IFE, .device = board_ich9lan, .deviceName = "82562V2", .deviceInfo = &e1000_ich9_info },
+    { .pciDevId = E1000_DEV_ID_ICH9_IFE_G, .device = board_ich9lan, .deviceName = "82562G2", .deviceInfo = &e1000_ich9_info },
+    { .pciDevId = E1000_DEV_ID_ICH9_IFE_GT, .device = board_ich9lan, .deviceName = "82562GT2", .deviceInfo = &e1000_ich9_info },
+    { .pciDevId = E1000_DEV_ID_ICH9_IGP_AMT, .device = board_ich9lan, .deviceName = "82566DM2", .deviceInfo = &e1000_ich9_info },
+    { .pciDevId = E1000_DEV_ID_ICH9_IGP_C, .device = board_ich9lan, .deviceName = "82566DC2", .deviceInfo = &e1000_ich9_info },
+    { .pciDevId = E1000_DEV_ID_ICH9_BM, .device = board_ich9lan, .deviceName = "82567LM4", .deviceInfo = &e1000_ich9_info },
+    { .pciDevId = E1000_DEV_ID_ICH9_IGP_M, .device = board_ich9lan, .deviceName = "82567LF", .deviceInfo = &e1000_ich9_info },
+    { .pciDevId = E1000_DEV_ID_ICH9_IGP_M_AMT, .device = board_ich9lan, .deviceName = "82567LM", .deviceInfo = &e1000_ich9_info },
+    { .pciDevId = E1000_DEV_ID_ICH9_IGP_M_V, .device = board_ich9lan, .deviceName = "82567V", .deviceInfo = &e1000_ich9_info },
+
+    { .pciDevId = E1000_DEV_ID_ICH10_R_BM_LM, .device = board_ich9lan, .deviceName = "82567LM2", .deviceInfo = &e1000_ich9_info },
+    { .pciDevId = E1000_DEV_ID_ICH10_R_BM_LF, .device = board_ich9lan, .deviceName = "82567LF2", .deviceInfo = &e1000_ich9_info },
+    { .pciDevId = E1000_DEV_ID_ICH10_R_BM_V, .device = board_ich9lan, .deviceName = "82567V2", .deviceInfo = &e1000_ich9_info },
+
+    { .pciDevId = E1000_DEV_ID_ICH10_D_BM_LM, .device = board_ich10lan, .deviceName = "82567LM3", .deviceInfo = &e1000_ich10_info },
+    { .pciDevId = E1000_DEV_ID_ICH10_D_BM_LF, .device = board_ich10lan, .deviceName = "82567LF3", .deviceInfo = &e1000_ich10_info },
+    { .pciDevId = E1000_DEV_ID_ICH10_D_BM_V, .device = board_ich10lan, .deviceName = "82567V4", .deviceInfo = &e1000_ich10_info },
+
+    { .pciDevId = E1000_DEV_ID_PCH_M_HV_LM, .device = board_pchlan, .deviceName = "82578LM", .deviceInfo = &e1000_pch_info },
+    { .pciDevId = E1000_DEV_ID_PCH_M_HV_LC, .device = board_pchlan, .deviceName = "82578LC", .deviceInfo = &e1000_pch_info },
+    { .pciDevId = E1000_DEV_ID_PCH_D_HV_DM, .device = board_pchlan, .deviceName = "82578DM", .deviceInfo = &e1000_pch_info },
+    { .pciDevId = E1000_DEV_ID_PCH_D_HV_DC, .device = board_pchlan, .deviceName = "82578DC", .deviceInfo = &e1000_pch_info },
+
+    { .pciDevId = E1000_DEV_ID_PCH2_LV_LM, .device = board_pch2lan, .deviceName = "82579LM", .deviceInfo = &e1000_pch2_info },
+    { .pciDevId = E1000_DEV_ID_PCH2_LV_V, .device = board_pch2lan, .deviceName = "82579V", .deviceInfo = &e1000_pch2_info },
+
+    { .pciDevId = E1000_DEV_ID_PCH_LPT_I217_LM, .device = board_pch_lpt, .deviceName = "I217LM", .deviceInfo = &e1000_pch_lpt_info },
+    { .pciDevId = E1000_DEV_ID_PCH_LPT_I217_V, .device = board_pch_lpt, .deviceName = "I217V", .deviceInfo = &e1000_pch_lpt_info },
+    { .pciDevId = E1000_DEV_ID_PCH_LPTLP_I218_LM, .device = board_pch_lpt, .deviceName = "I218LM", .deviceInfo = &e1000_pch_lpt_info },
+    { .pciDevId = E1000_DEV_ID_PCH_LPTLP_I218_V, .device = board_pch_lpt, .deviceName = "I218V", .deviceInfo = &e1000_pch_lpt_info },
+    { .pciDevId = E1000_DEV_ID_PCH_I218_LM2, .device = board_pch_lpt, .deviceName = "I218LM2", .deviceInfo = &e1000_pch_lpt_info },
+    { .pciDevId = E1000_DEV_ID_PCH_I218_V2, .device = board_pch_lpt, .deviceName = "I218V2", .deviceInfo = &e1000_pch_lpt_info },
+    { .pciDevId = E1000_DEV_ID_PCH_I218_LM3, .device = board_pch_lpt, .deviceName = "I218LM3", .deviceInfo = &e1000_pch_lpt_info },
+    { .pciDevId = E1000_DEV_ID_PCH_I218_V3, .device = board_pch_lpt, .deviceName = "I218V3", .deviceInfo = &e1000_pch_lpt_info },
     { .pciDevId = E1000_DEV_ID_PCH_SPT_I219_LM, .device = board_pch_spt, .deviceName = "I219LM", .deviceInfo = &e1000_pch_spt_info },
     { .pciDevId = E1000_DEV_ID_PCH_SPT_I219_V, .device = board_pch_spt, .deviceName = "I219V", .deviceInfo = &e1000_pch_spt_info },
     { .pciDevId = E1000_DEV_ID_PCH_SPT_I219_LM2, .device = board_pch_spt, .deviceName = "I219LM2", .deviceInfo = &e1000_pch_spt_info },
@@ -96,6 +91,20 @@ static const struct intelDevice deviceTable[] = {
     { .pciDevId = E1000_DEV_ID_PCH_CMP_I219_V11, .device = board_pch_cnp, .deviceName = "I219V11", .deviceInfo = &e1000_pch_cnp_info },
     { .pciDevId = E1000_DEV_ID_PCH_CMP_I219_LM12, .device = board_pch_spt, .deviceName = "I219LM12", .deviceInfo = &e1000_pch_spt_info },
     { .pciDevId = E1000_DEV_ID_PCH_CMP_I219_V12, .device = board_pch_spt, .deviceName = "I219V12", .deviceInfo = &e1000_pch_spt_info },
+    { .pciDevId = E1000_DEV_ID_PCH_TGP_I219_LM13, .device = board_pch_cnp, .deviceName = "I219LM13", .deviceInfo = &e1000_pch_cnp_info },
+    { .pciDevId = E1000_DEV_ID_PCH_TGP_I219_V13, .device = board_pch_cnp, .deviceName = "I219V13", .deviceInfo = &e1000_pch_cnp_info },
+    { .pciDevId = E1000_DEV_ID_PCH_TGP_I219_LM14, .device = board_pch_cnp, .deviceName = "I219LM14", .deviceInfo = &e1000_pch_cnp_info },
+    { .pciDevId = E1000_DEV_ID_PCH_TGP_I219_V14, .device = board_pch_cnp, .deviceName = "I219V14", .deviceInfo = &e1000_pch_cnp_info },
+    { .pciDevId = E1000_DEV_ID_PCH_TGP_I219_LM15, .device = board_pch_cnp, .deviceName = "I219LM15", .deviceInfo = &e1000_pch_cnp_info },
+    { .pciDevId = E1000_DEV_ID_PCH_TGP_I219_V15, .device = board_pch_cnp, .deviceName = "I219V15", .deviceInfo = &e1000_pch_cnp_info },
+    { .pciDevId = E1000_DEV_ID_PCH_ADP_I219_LM16, .device = board_pch_cnp, .deviceName = "I219LM16", .deviceInfo = &e1000_pch_cnp_info },
+    { .pciDevId = E1000_DEV_ID_PCH_ADP_I219_V16, .device = board_pch_cnp, .deviceName = "I219V16", .deviceInfo = &e1000_pch_cnp_info },
+    { .pciDevId = E1000_DEV_ID_PCH_ADP_I219_LM17, .device = board_pch_cnp, .deviceName = "I219LM17", .deviceInfo = &e1000_pch_cnp_info },
+    { .pciDevId = E1000_DEV_ID_PCH_ADP_I219_V17, .device = board_pch_cnp, .deviceName = "I219V17", .deviceInfo = &e1000_pch_cnp_info },
+    { .pciDevId = E1000_DEV_ID_PCH_MTP_I219_LM18, .device = board_pch_cnp, .deviceName = "I219LM18", .deviceInfo = &e1000_pch_cnp_info },
+    { .pciDevId = E1000_DEV_ID_PCH_MTP_I219_V18, .device = board_pch_cnp, .deviceName = "I219V18", .deviceInfo = &e1000_pch_cnp_info },
+    { .pciDevId = E1000_DEV_ID_PCH_MTP_I219_LM19, .device = board_pch_cnp, .deviceName = "I219LM19", .deviceInfo = &e1000_pch_cnp_info },
+    { .pciDevId = E1000_DEV_ID_PCH_MTP_I219_V19, .device = board_pch_cnp, .deviceName = "I219V19", .deviceInfo = &e1000_pch_cnp_info },
 
     /* end of table */
     { .pciDevId = 0, .device = 0, .deviceName = NULL, .deviceInfo = NULL }
@@ -136,7 +145,7 @@ OSDefineMetaClassAndStructors(IntelMausi, super)
 bool IntelMausi::init(OSDictionary *properties)
 {
     bool result;
-    
+
     result = super::init(properties);
     
     bool tmp = 0;
@@ -169,7 +178,6 @@ bool IntelMausi::init(OSDictionary *properties)
         multicastMode = false;
         linkUp = false;
 #ifdef __PRIVATE_SPI__
-        linkOpts = 0;
         polling = false;
 #else
         stalled = false;
@@ -185,17 +193,16 @@ bool IntelMausi::init(OSDictionary *properties)
         pciDeviceData.revision = 0;
         adapterData.pdev = &pciDeviceData;
         mtu = ETH_DATA_LEN;
+        isRssSet = false;
         wolCapable = wol;
         wolActive = wol;
-        enableTSO4 = false;
-        enableTSO6 = false;
         enableCSO6 = false;
         pciPMCtrlOffset = 0;
         maxLatency = 0;
         debugger = NULL;
         hasDebugger = false;
     }
-    
+
 done:
     return result;
 }
@@ -203,9 +210,9 @@ done:
 void IntelMausi::free()
 {
     UInt32 i;
-    
-    DebugLog("free() ===>\n");
-    
+
+    DebugLog("[IntelMausi]: free() ===>\n");
+
     if (workLoop) {
         if (interruptSource) {
             workLoop->removeEventSource(interruptSource);
@@ -221,110 +228,110 @@ void IntelMausi::free()
     RELEASE(commandGate);
     RELEASE(txQueue);
     RELEASE(mediumDict);
-    
+
     for (i = MEDIUM_INDEX_AUTO; i < MEDIUM_INDEX_COUNT; i++)
         mediumTable[i] = NULL;
-    
+
     RELEASE(baseMap);
     baseAddr = NULL;
     adapterData.hw.hw_addr = NULL;
-    
+
     RELEASE(flashMap);
     flashAddr = NULL;
     adapterData.hw.flash_address = NULL;
 
     RELEASE(pciDevice);
     freeDMADescriptors();
-    
+
     if (mcAddrList) {
         IOFree(mcAddrList, mcListCount * sizeof(IOEthernetAddress));
         mcAddrList = NULL;
         mcListCount = 0;
     }
-    
-    DebugLog("free() <===\n");
-    
+
+    DebugLog("[IntelMausi]: free() <===\n");
+
     super::free();
 }
 
 bool IntelMausi::start(IOService *provider)
 {
     bool result;
-    
+
     result = super::start(provider);
-    
+
     if (!result) {
-        IOLog("Ethernet [IntelMausi]: IOEthernetController::start failed.\n");
+        IOLog("[IntelMausi]: IOEthernetController::start failed.\n");
         goto done;
     }
     multicastMode = false;
     promiscusMode = false;
     mcAddrList = NULL;
     mcListCount = 0;
-    
+
     pciDevice = OSDynamicCast(IOPCIDevice, provider);
-    
+
     if (!pciDevice) {
-        IOLog("Ethernet [IntelMausi]: No provider.\n");
+        IOLog("[IntelMausi]: No provider.\n");
         goto done;
     }
     pciDevice->retain();
-    
+
     if (!pciDevice->open(this)) {
-        IOLog("Ethernet [IntelMausi]: Failed to open provider.\n");
+        IOLog("[IntelMausi]: Failed to open provider.\n");
         goto error1;
     }
     if (!initPCIConfigSpace(pciDevice)) {
         goto error2;
     }
     getParams();
-    
+
     if (!intelStart()) {
         goto error2;
-    }    
+    }
     if (!setupMediumDict()) {
-        IOLog("Ethernet [IntelMausi]: Failed to setup medium dictionary.\n");
+        IOLog("[IntelMausi]: Failed to setup medium dictionary.\n");
         goto error2;
     }
     commandGate = getCommandGate();
-    
+
     if (!commandGate) {
-        IOLog("Ethernet [IntelMausi]: getCommandGate() failed.\n");
-        goto error3;
+        IOLog("[IntelMausi]: getCommandGate() failed.\n");
+        goto error2;
     }
     commandGate->retain();
-    
+
     if (!setupDMADescriptors()) {
-        IOLog("Ethernet [IntelMausi]: Error allocating DMA descriptors.\n");
+        IOLog("[IntelMausi]: Error allocating DMA descriptors.\n");
         goto error3;
     }
 
     if (!initEventSources(provider)) {
-        IOLog("Ethernet [IntelMausi]: initEventSources() failed.\n");
+        IOLog("[IntelMausi]: initEventSources() failed.\n");
         goto error4;
     }
-    
+
     result = attachInterface(reinterpret_cast<IONetworkInterface**>(&netif));
-    
+
     if (!result) {
-        IOLog("Ethernet [IntelMausi]: attachInterface() failed.\n");
-        goto error3;
+        IOLog("[IntelMausi]: attachInterface() failed.\n");
+        goto error4;
     }
     pciDevice->close(this);
     result = true;
 
 done:
     return result;
-    
+
 error4:
     freeDMADescriptors();
-    
+
 error3:
     RELEASE(commandGate);
-    
+
 error2:
     pciDevice->close(this);
-    
+
 error1:
     pciDevice->release();
     pciDevice = NULL;
@@ -334,7 +341,7 @@ error1:
 void IntelMausi::stop(IOService *provider)
 {
     UInt32 i;
-    
+
     if (netif) {
         /*
          * Let the firmware know that the network interface is now closed.
@@ -359,12 +366,12 @@ void IntelMausi::stop(IOService *provider)
     RELEASE(commandGate);
     RELEASE(txQueue);
     RELEASE(mediumDict);
-    
+
     for (i = MEDIUM_INDEX_AUTO; i < MEDIUM_INDEX_COUNT; i++)
         mediumTable[i] = NULL;
-    
+
     freeDMADescriptors();
-    
+
     if (mcAddrList) {
         IOFree(mcAddrList, mcListCount * sizeof(IOEthernetAddress));
         mcAddrList = NULL;
@@ -373,70 +380,70 @@ void IntelMausi::stop(IOService *provider)
     RELEASE(baseMap);
     baseAddr = NULL;
     adapterData.hw.hw_addr = NULL;
-    
+
     RELEASE(flashMap);
     flashAddr = NULL;
     adapterData.hw.flash_address = NULL;
-    
+
     RELEASE(pciDevice);
-    
+
     super::stop(provider);
 }
 
 IOReturn IntelMausi::registerWithPolicyMaker(IOService *policyMaker)
 {
-    DebugLog("registerWithPolicyMaker() ===>\n");
-    
+    DebugLog("[IntelMausi]: registerWithPolicyMaker() ===>\n");
+
     powerState = kPowerStateOn;
-    
-    DebugLog("registerWithPolicyMaker() <===\n");
-    
+
+    DebugLog("[IntelMausi]: registerWithPolicyMaker() <===\n");
+
     return policyMaker->registerPowerDriver(this, powerStateArray, kPowerStateCount);
 }
 
 IOReturn IntelMausi::setPowerState(unsigned long powerStateOrdinal, IOService *policyMaker)
 {
     IOReturn result = IOPMAckImplied;
-    
-    DebugLog("setPowerState() ===>\n");
-    
+
+    DebugLog("[IntelMausi]: setPowerState() ===>\n");
+
     if (powerStateOrdinal == powerState) {
-        DebugLog("Ethernet [IntelMausi]: Already in power state %lu.\n", powerStateOrdinal);
+        DebugLog("[IntelMausi]: Already in power state %lu.\n", powerStateOrdinal);
         goto done;
     }
-    DebugLog("Ethernet [IntelMausi]: switching to power state %lu.\n", powerStateOrdinal);
-    
+    DebugLog("[IntelMausi]: switching to power state %lu.\n", powerStateOrdinal);
+
     if (powerStateOrdinal == kPowerStateOff)
         commandGate->runAction(setPowerStateSleepAction);
     else
         commandGate->runAction(setPowerStateWakeAction);
-    
+
     powerState = powerStateOrdinal;
-    
+
 done:
-    DebugLog("setPowerState() <===\n");
-    
+    DebugLog("[IntelMausi]: setPowerState() <===\n");
+
     return result;
 }
 
 void IntelMausi::systemWillShutdown(IOOptionBits specifier)
 {
-    DebugLog("systemWillShutdown() ===>\n");
-    
+    DebugLog("[IntelMausi]: systemWillShutdown() ===>\n");
+
     if ((kIOMessageSystemWillPowerOff | kIOMessageSystemWillRestart) & specifier) {
         disable(netif);
-        
+
         /* Restore the original MAC address. */
         adapterData.hw.mac.ops.rar_set(&adapterData.hw, adapterData.hw.mac.perm_addr, 0);
-        
+
         /*
          * Let the firmware know that the network interface is now closed
          */
         e1000e_release_hw_control(&adapterData);
     }
-    
-    DebugLog("systemWillShutdown() <===\n");
-    
+
+    DebugLog("[IntelMausi]: systemWillShutdown() <===\n");
+
     /* Must call super on shutdown or system will stall. */
     super::systemWillShutdown(specifier);
 }
@@ -445,13 +452,13 @@ void IntelMausi::systemWillShutdown(IOOptionBits specifier)
 
 IOReturn IntelMausi::enable(IOKernelDebugger *debugger)
 {
-    DebugLog("Ethernet [IntelMausi]: enable(IOKernelDebugger *debugger) <===\n");
+    DebugLog("[IntelMausi]: enable(IOKernelDebugger *debugger) <===\n");
     return driverEnable();
 }
 
 IOReturn IntelMausi::disable(IOKernelDebugger *debugger)
 {
-    DebugLog("Ethernet [IntelMausi]: disable(IOKernelDebugger *debugger) <===\n");
+    DebugLog("[IntelMausi]: disable(IOKernelDebugger *debugger) <===\n");
     return driverDisable();
 }
 
@@ -497,7 +504,7 @@ void IntelMausi::kdpStartup()
     for (i = 0; i < kNumKdpDesc; i++) {
         kdpBufArray[i] = allocatePacket(KDP_MAXPACKET);
         if (!kdpBufArray[i]) {
-            IOLog("Ethernet [IntelMausi]: cannot allocate kdp pool(%d)\n", i);
+            IOLog("[IntelMausi]: cannot allocate kdp pool(%d)\n", i);
             while (i > 0) {
                 freePacket(kdpBufArray[i - 1]);
             }
@@ -507,7 +514,7 @@ void IntelMausi::kdpStartup()
 
     setProperty("location", "1");
     hasDebugger = attachDebuggerClient(&debugger);
-    DebugLog("Ethernet [IntelMausi]: attachDebuggerClient(%p) - %d\n", debugger, hasDebugger);
+    DebugLog("[IntelMausi]: attachDebuggerClient(%p) - %d\n", debugger, hasDebugger);
 }
 
 bool IntelMausi::isKdpPacket(UInt8 *data, UInt32 len)
@@ -561,7 +568,7 @@ void IntelMausi::receivePacket(void *pkt, UInt32 *pktSizeOut, UInt32 timeout)
     while (!isReceived && costTime < timeout) {
         while (!isReceived && (OSSwapLittleToHostInt32(desc->wb.upper.status_error) & E1000_RXD_STAT_DD)) {
             if (!(isEnabled && linkUp) || forceReset) {
-                DebugLog("Ethernet [IntelMausi]:receivePacket  Interface down. Waiting...\n");
+                DebugLog("[IntelMausi]: receivePacket  Interface down. Waiting...\n");
                 break;
             }
 
@@ -587,13 +594,13 @@ void IntelMausi::receivePacket(void *pkt, UInt32 *pktSizeOut, UInt32 timeout)
                 }
 
                 if (usedSize != pktSize) {
-                    DebugLog("Ethernet [IntelMausi]:receivePacket  invalid packet %u vs %u in %u chunks.\n", usedSize, pktSize, counter);
+                    DebugLog("[IntelMausi]: receivePacket  invalid packet %u vs %u in %u chunks.\n", usedSize, pktSize, counter);
                 } else if (isKdpPacket((UInt8 *)pkt, usedSize)) {
                     *pktSizeOut = usedSize;
                     isReceived = true;
                 }
             } else {
-                DebugLog("Ethernet [IntelMausi]:receivePacket  drop out of range packet  pktSize %u.\n", pktSize);
+                DebugLog("[IntelMausi]: receivePacket  drop out of range packet  pktSize %u.\n", pktSize);
             }
 
             /* Update the descriptor and get the next one to examine. */
@@ -650,12 +657,12 @@ void IntelMausi::sendPacket(void *pkt, UInt32 pktSize)
     /* WARNING: This routine is NOT allowed to allocate memory or block the thread (e.g. use mutexes, IOSleep). */
 
     if (!(isEnabled && linkUp) || forceReset) {
-        IOLog("Ethernet [IntelMausi]:sendPacket  Interface down. Dropping packets.\n");
+        IOLog("[IntelMausi]:sendPacket  Interface down. Dropping packets.\n");
         return;
     }
 
     if (pktSize > KDP_MAXPACKET) {
-        IOLog("Ethernet [IntelMausi]:sendPacket  pktSize is too big.\n");
+        IOLog("[IntelMausi]:sendPacket  pktSize is too big.\n");
         return;
     }
 
@@ -671,7 +678,7 @@ void IntelMausi::sendPacket(void *pkt, UInt32 pktSize)
     }
 
     if (m == NULL) {
-        IOLog("Ethernet [IntelMausi]:sendPacket  Empty kdpBufArray. Dropping packets.\n");
+        IOLog("[IntelMausi]:sendPacket  Empty kdpBufArray. Dropping packets.\n");
         return;
     }
 
@@ -685,7 +692,7 @@ void IntelMausi::sendPacket(void *pkt, UInt32 pktSize)
     }
 
     if (!(txNumFreeDesc >= (kMaxSegs + kTxSpareDescs))) {
-        DebugLog("Ethernet [IntelMausi]: sendPacket have no txNumFreeDesc %u. Dropping packets!\n", txNumFreeDesc);
+        DebugLog("[IntelMausi]: sendPacket have no txNumFreeDesc %u. Dropping packets!\n", txNumFreeDesc);
         freePacketEx(m, kDelayFree);
         return;
     }
@@ -756,7 +763,7 @@ void IntelMausi::sendPacket(void *pkt, UInt32 pktSize)
     numDescs += numSegs;
 
     if (!numSegs) {
-        DebugLog("Ethernet [IntelMausi]: getPhysicalSegmentsWithCoalesce() failed. Dropping packet.\n");
+        DebugLog("[IntelMausi]: getPhysicalSegmentsWithCoalesce() failed. Dropping packet.\n");
         etherStats->dot3TxExtraEntry.resourceErrors++;
         freePacketEx(m, kDelayFree);
         return;
@@ -809,25 +816,25 @@ void IntelMausi::sendPacket(void *pkt, UInt32 pktSize)
 IOReturn IntelMausi::driverEnable()
 {
     IOReturn result = kIOReturnError;
-    
-    DebugLog("Ethernet [IntelMausi] enable() ===>\n");
-    
+
+    DebugLog("[IntelMausi]: enable() ===>\n");
+
     if (isEnabled) {
-        DebugLog("Ethernet [IntelMausi]: Interface already enabled.\n");
+        DebugLog("[IntelMausi]: Interface already enabled.\n");
         result = kIOReturnSuccess;
         goto done;
     }
     if (!pciDevice || pciDevice->isOpen()) {
-        IOLog("Ethernet [IntelMausi]: Unable to open PCI device.\n");
+        IOLog("[IntelMausi]: Unable to open PCI device.\n");
         goto done;
     }
     pciDevice->open(this);
-    
+
     intelEnable();
-    
+
     /* As we are using an msi the interrupt hasn't been enabled by start(). */
     interruptSource->enable();
-    
+
     rxPacketHead = rxPacketTail = NULL;
     rxPacketSize = 0;
 
@@ -846,8 +853,8 @@ IOReturn IntelMausi::driverEnable()
     eeeMode = 0;
 
     result = kIOReturnSuccess;
-    
-    DebugLog("Ethernet [IntelMausi] enable() <===\n");
+
+    DebugLog("[IntelMausi]: enable() <===\n");
 
 done:
     return result;
@@ -856,12 +863,12 @@ done:
 IOReturn IntelMausi::driverDisable()
 {
     IOReturn result = kIOReturnSuccess;
-    
-    DebugLog("Ethernet [IntelMausi] disable() ===>\n");
-    
+
+    DebugLog("[IntelMausi]: disable() ===>\n");
+
     if (!isEnabled)
         goto done;
-    
+
 #ifdef __PRIVATE_SPI__
     /* Stop output thread and flush txQueue */
     netif->stopOutputThread();
@@ -881,12 +888,12 @@ IOReturn IntelMausi::driverDisable()
 
     timerSource->cancelTimeout();
     txDescDoneCount = txDescDoneLast = 0;
-    
+
     /* We are using MSI so that we have to disable the interrupt. */
     interruptSource->disable();
-    
+
     intelDisable();
-    
+
     if (mcAddrList) {
         IOFree(mcAddrList, mcListCount * sizeof(IOEthernetAddress));
         mcAddrList = NULL;
@@ -894,9 +901,9 @@ IOReturn IntelMausi::driverDisable()
     }
     if (pciDevice && pciDevice->isOpen())
         pciDevice->close(this);
-    
-    DebugLog("Ethernet [IntelMausi] disable() <===\n");
-    
+
+    DebugLog("[IntelMausi]: disable() <===\n");
+
 done:
     return result;
 }
@@ -927,10 +934,11 @@ IOReturn IntelMausi::outputStart(IONetworkInterface *interface, IOOptionBits opt
     UInt16 i;
     UInt16 count;
 
+    //DebugLog("[IntelMausi]: outputStart() ===>\n");
     count = 0;
-    
+
     if (!(isEnabled && linkUp) || forceReset) {
-        DebugLog("Ethernet [IntelMausi]: Interface down. Dropping packets.\n");
+        DebugLog("[IntelMausi]: Interface down. Dropping packets.\n");
         goto done;
     }
     while ((txNumFreeDesc >= (kMaxSegs + kTxSpareDescs)) && (interface->dequeueOutputPackets(1, &m, NULL, NULL, NULL) == kIOReturnSuccess)) {
@@ -943,259 +951,8 @@ IOReturn IntelMausi::outputStart(IONetworkInterface *interface, IOOptionBits opt
         ipConfig = 0;
         tcpConfig = 0;
         offloadFlags = 0;
-        
-        if (mbuf_get_tso_requested(m, &offloadFlags, &mss)) {
-            DebugLog("Ethernet [IntelMausi]: mbuf_get_tso_requested() failed. Dropping packet.\n");
-            freePacketEx(m);
-            continue;
-        }
+
         /* First prepare the header and the command bits. */
-        if (offloadFlags & (MBUF_TSO_IPV4 | MBUF_TSO_IPV6)) {
-            numDescs = 1;
-            opts = E1000_TXD_CMD_IFCS;
-            
-            if (offloadFlags & MBUF_TSO_IPV4) {
-                /* Correct the pseudo header checksum and extract the header size. */
-                prepareTSO4(m, &mss, &len);
-                
-                /* Prepare the context descriptor. */
-                ipConfig = ((kIPv4CSumEnd << 16) | (kIPv4CSumOffset << 8) | kIPv4CSumStart);
-                tcpConfig = ((kTCPv4CSumEnd << 16) | (kTCPv4CSumOffset << 8) | kTCPv4CSumStart);
-                len |= (E1000_TXD_CMD_DEXT | E1000_TXD_CMD_TSE | E1000_TXD_CMD_IP | E1000_TXD_CMD_TCP);
-                
-                //DebugLog("Ethernet [IntelMausi]: TSO4 mssHeaderLen=0x%08x, payload=0x%08x\n", mss, len);
-                
-                /* Setup the command bits for TSO over IPv4. */
-                cmd = (E1000_TXD_CMD_DEXT | E1000_TXD_CMD_TSE | E1000_TXD_DTYP_D);
-                word2 = (E1000_TXD_OPTS_TXSM | E1000_TXD_OPTS_IXSM);
-            } else {
-                /* Correct the pseudo header checksum and extract the header size. */
-                prepareTSO6(m, &mss, &len);
-                
-                /* Prepare the context descriptor. */
-                ipConfig = ((kIPv6CSumEnd << 16) | (kIPv6CSumOffset << 8) | kIPv6CSumStart);
-                tcpConfig = ((kTCPv6CSumEnd << 16) | (kTCPv6CSumOffset << 8) | kTCPv6CSumStart);
-                len |= (E1000_TXD_CMD_DEXT | E1000_TXD_CMD_TSE | E1000_TXD_CMD_TCP);
-                
-                /* Setup the command bits for TSO over IPv6. */
-                cmd = (E1000_TXD_CMD_DEXT | E1000_TXD_CMD_TSE | E1000_TXD_DTYP_D);
-                word2 = E1000_TXD_OPTS_TXSM;
-            }
-        } else {
-            mbuf_get_csum_requested(m, &offloadFlags, &mss);
-            
-            if (offloadFlags & (kChecksumUDPIPv6 | kChecksumTCPIPv6 | kChecksumIP | kChecksumUDP | kChecksumTCP)) {
-                numDescs = 1;
-                cmd = (E1000_TXD_CMD_DEXT | E1000_TXD_DTYP_D);
-                
-                if (offloadFlags & kChecksumTCP) {
-                    ipConfig = ((kIPv4CSumEnd << 16) | (kIPv4CSumOffset << 8) | kIPv4CSumStart);
-                    tcpConfig = ((kTCPv4CSumEnd << 16) | (kTCPv4CSumOffset << 8) | kTCPv4CSumStart);
-                    len = (E1000_TXD_CMD_DEXT | E1000_TXD_CMD_IP | E1000_TXD_CMD_TCP);
-                    mss = 0;
-                    
-                    word2 = (E1000_TXD_OPTS_TXSM | E1000_TXD_OPTS_IXSM);
-                } else if (offloadFlags & kChecksumUDP) {
-                    ipConfig = ((kIPv4CSumEnd << 16) | (kIPv4CSumOffset << 8) | kIPv4CSumStart);
-                    tcpConfig = ((kUDPv4CSumEnd << 16) | (kUDPv4CSumOffset << 8) | kUDPv4CSumStart);
-                    len = (E1000_TXD_CMD_DEXT | E1000_TXD_CMD_IP);
-                    mss = 0;
-                    
-                    word2 = (E1000_TXD_OPTS_TXSM | E1000_TXD_OPTS_IXSM);
-                } else if (offloadFlags & kChecksumIP) {
-                    ipConfig = ((kIPv4CSumEnd << 16) | (kIPv4CSumOffset << 8) | kIPv4CSumStart);
-                    tcpConfig = 0;
-                    mss = 0;
-                    len = (E1000_TXD_CMD_DEXT | E1000_TXD_CMD_IP);
-                    
-                    word2 = E1000_TXD_OPTS_IXSM;
-                } else if (offloadFlags & kChecksumTCPIPv6) {
-                    ipConfig = ((kIPv6CSumEnd << 16) | (kIPv6CSumOffset << 8) | kIPv6CSumStart);
-                    tcpConfig = ((kTCPv6CSumEnd << 16) | (kTCPv6CSumOffset << 8) | kTCPv6CSumStart);
-                    len = (E1000_TXD_CMD_DEXT | E1000_TXD_CMD_TCP);
-                    mss = 0;
-                    
-                    word2 = E1000_TXD_OPTS_TXSM;
-                } else if (offloadFlags & kChecksumUDPIPv6) {
-                    ipConfig = ((kIPv6CSumEnd << 16) | (kIPv6CSumOffset << 8) | kIPv6CSumStart);
-                    tcpConfig = ((kUDPv6CSumEnd << 16) | (kUDPv6CSumOffset << 8) | kUDPv6CSumStart);
-                    len = E1000_TXD_CMD_DEXT;
-                    mss = 0;
-                    
-                    word2 = E1000_TXD_OPTS_TXSM;
-                }
-            }
-        }
-        /* Next get the VLAN tag and command bit. */
-        if (!mbuf_get_vlan_tag(m, &vlanTag)) {
-            opts |= E1000_TXD_CMD_VLE;
-            word2 |= (vlanTag << E1000_TX_FLAGS_VLAN_SHIFT);
-        }
-        /* Finally get the physical segments. */
-        numSegs = txMbufCursor->getPhysicalSegmentsWithCoalesce(m, &txSegments[0], kMaxSegs);
-        numDescs += numSegs;
-        
-        if (!numSegs) {
-            DebugLog("Ethernet [IntelMausi]: getPhysicalSegmentsWithCoalesce() failed. Dropping packet.\n");
-            etherStats->dot3TxExtraEntry.resourceErrors++;
-            freePacketEx(m);
-            break;
-        }
-        OSAddAtomic(-numDescs, &txNumFreeDesc);
-        index = txNextDescIndex;
-        txNextDescIndex = (txNextDescIndex + numDescs) & kTxDescMask;
-        lastSeg = numSegs - 1;
-        
-        /* Setup the context descriptor for TSO or checksum offload. */
-        if (offloadFlags) {
-            contDesc = (struct e1000_context_desc *)&txDescArray[index];
-            
-            txBufArray[index].mbuf = NULL;
-            txBufArray[index].numDescs = 0;
-            
-#ifdef DEBUG
-            txBufArray[index].pad = numSegs;
-#endif
-            
-            contDesc->lower_setup.ip_config = OSSwapHostToLittleInt32(ipConfig);
-            contDesc->upper_setup.tcp_config = OSSwapHostToLittleInt32(tcpConfig);
-            contDesc->cmd_and_length = OSSwapHostToLittleInt32(len);
-            contDesc->tcp_seg_setup.data = OSSwapHostToLittleInt32(mss);
-            
-            ++index &= kTxDescMask;
-        }
-        /* And finally fill in the data descriptors. */
-        if (offloadFlags & (MBUF_TSO_IPV4 | MBUF_TSO_IPV6)) {
-            for (i = 0; i < numSegs; i++) {
-                desc = &txDescArray[index];
-                word1 = (cmd | (txSegments[i].length & 0x000fffff));
-                
-                if (i == 0) {
-                    word1 |= opts;
-                    txBufArray[index].mbuf = NULL;
-                    txBufArray[index].numDescs = 0;
-                } else if (i == lastSeg) {
-                    word1 |= (E1000_TXD_CMD_IDE | E1000_TXD_CMD_EOP | E1000_TXD_CMD_RS);
-                    txBufArray[index].mbuf = m;
-                    txBufArray[index].numDescs = numDescs;
-                } else {
-                    txBufArray[index].mbuf = NULL;
-                    txBufArray[index].numDescs = 0;
-                }
-                
-#ifdef DEBUG
-                txBufArray[index].pad = (UInt32)txSegments[i].length;
-#endif
-                
-                desc->buffer_addr = OSSwapHostToLittleInt64(txSegments[i].location);
-                desc->lower.data = OSSwapHostToLittleInt32(word1);
-                desc->upper.data = OSSwapHostToLittleInt32(word2);
-                
-                ++index &= kTxDescMask;
-            }
-        } else {
-            for (i = 0; i < numSegs; i++) {
-                desc = &txDescArray[index];
-                word1 = (cmd | (txSegments[i].length & 0x000fffff));
-                
-                if (i == lastSeg) {
-                    word1 |= opts;
-                    txBufArray[index].mbuf = m;
-                    txBufArray[index].numDescs = numDescs;
-                } else {
-                    txBufArray[index].mbuf = NULL;
-                    txBufArray[index].numDescs = 0;
-                }
-                
-#ifdef DEBUG
-                txBufArray[index].pad = (UInt32)txSegments[i].length;
-#endif
-                
-                desc->buffer_addr = OSSwapHostToLittleInt64(txSegments[i].location);
-                desc->lower.data = OSSwapHostToLittleInt32(word1);
-                desc->upper.data = OSSwapHostToLittleInt32(word2);
-                
-                ++index &= kTxDescMask;
-            }
-        }
-        count++;
-    }
-    if (count)
-        intelUpdateTxDescTail(txNextDescIndex);
-    
-    result = (txNumFreeDesc >= (kMaxSegs + kTxSpareDescs)) ? kIOReturnSuccess : kIOReturnNoResources;
-
-done:
-    return result;
-}
-
-#else
-
-UInt32 IntelMausi::outputPacket(mbuf_t m, void *param)
-{
-    IOPhysicalSegment txSegments[kMaxSegs];
-    struct e1000_data_desc *desc;
-    struct e1000_context_desc *contDesc;
-    UInt32 result = kIOReturnOutputDropped;
-    UInt32 numDescs = 0;
-    UInt32 cmd = 0;
-    UInt32 opts = (E1000_TXD_CMD_IDE | E1000_TXD_CMD_EOP | E1000_TXD_CMD_IFCS | E1000_TXD_CMD_RS);
-    UInt32 word2 = 0;
-    UInt32 len = 0;
-    UInt32 mss = 0;
-    UInt32 ipConfig = 0;
-    UInt32 tcpConfig = 0;
-    UInt32 word1;
-    UInt32 numSegs;
-    UInt32 lastSeg;
-    UInt32 index;
-    UInt32 offloadFlags = 0;
-    UInt16 vlanTag;
-    UInt16 i;
-
-    //DebugLog("outputPacket() ===>\n");
-
-    if (!(isEnabled && linkUp) || forceReset) {
-        DebugLog("Ethernet [IntelMausi]: Interface down. Dropping packet.\n");
-        goto error;
-    }
-    if (mbuf_get_tso_requested(m, &offloadFlags, &mss)) {
-        DebugLog("Ethernet [IntelMausi]: mbuf_get_tso_requested() failed. Dropping packet.\n");
-        goto done;
-    }
-    /* First prepare the header and the command bits. */
-    if (offloadFlags & (MBUF_TSO_IPV4 | MBUF_TSO_IPV6)) {
-        numDescs = 1;
-        opts = E1000_TXD_CMD_IFCS;
-
-        if (offloadFlags & MBUF_TSO_IPV4) {
-            /* Correct the pseudo header checksum and extract the header size. */
-            prepareTSO4(m, &mss, &len);
-
-            /* Prepare the context descriptor. */
-            ipConfig = ((kIPv4CSumEnd << 16) | (kIPv4CSumOffset << 8) | kIPv4CSumStart);
-            tcpConfig = ((kTCPv4CSumEnd << 16) | (kTCPv4CSumOffset << 8) | kTCPv4CSumStart);
-            len |= (E1000_TXD_CMD_DEXT | E1000_TXD_CMD_TSE | E1000_TXD_CMD_IP | E1000_TXD_CMD_TCP);
-
-            //DebugLog("Ethernet [IntelMausi]: TSO4 mssHeaderLen=0x%08x, payload=0x%08x\n", mss, len);
-
-            /* Setup the command bits for TSO over IPv4. */
-            cmd = (E1000_TXD_CMD_DEXT | E1000_TXD_CMD_TSE | E1000_TXD_DTYP_D);
-            word2 = (E1000_TXD_OPTS_TXSM | E1000_TXD_OPTS_IXSM);
-        } else {
-            /* Correct the pseudo header checksum and extract the header size. */
-            prepareTSO6(m, &mss, &len);
-
-            /* Prepare the context descriptor. */
-            ipConfig = ((kIPv6CSumEnd << 16) | (kIPv6CSumOffset << 8) | kIPv6CSumStart);
-            tcpConfig = ((kTCPv6CSumEnd << 16) | (kTCPv6CSumOffset << 8) | kTCPv6CSumStart);
-            len |= (E1000_TXD_CMD_DEXT | E1000_TXD_CMD_TSE | E1000_TXD_CMD_TCP);
-
-            /* Setup the command bits for TSO over IPv6. */
-            cmd = (E1000_TXD_CMD_DEXT | E1000_TXD_CMD_TSE | E1000_TXD_DTYP_D);
-            word2 = E1000_TXD_OPTS_TXSM;
-        }
-    } else {
         mbuf_get_csum_requested(m, &offloadFlags, &mss);
 
         if (offloadFlags & (kChecksumUDPIPv6 | kChecksumTCPIPv6 | kChecksumIP | kChecksumUDP | kChecksumTCP)) {
@@ -1239,6 +996,159 @@ UInt32 IntelMausi::outputPacket(mbuf_t m, void *param)
                 word2 = E1000_TXD_OPTS_TXSM;
             }
         }
+
+        /* Next get the VLAN tag and command bit. */
+        if (!mbuf_get_vlan_tag(m, &vlanTag)) {
+            opts |= E1000_TXD_CMD_VLE;
+            word2 |= (vlanTag << E1000_TX_FLAGS_VLAN_SHIFT);
+        }
+        /* Finally get the physical segments. */
+        numSegs = txMbufCursor->getPhysicalSegmentsWithCoalesce(m, &txSegments[0], kMaxSegs);
+        numDescs += numSegs;
+
+        if (!numSegs) {
+            DebugLog("[IntelMausi]: getPhysicalSegmentsWithCoalesce() failed. Dropping packet.\n");
+            etherStats->dot3TxExtraEntry.resourceErrors++;
+            freePacket(m);
+            continue;
+        }
+        OSAddAtomic(-numDescs, &txNumFreeDesc);
+        index = txNextDescIndex;
+        txNextDescIndex = (txNextDescIndex + numDescs) & kTxDescMask;
+        lastSeg = numSegs - 1;
+
+        /* Setup the context descriptor for checksum offload. */
+        if (offloadFlags) {
+            contDesc = (struct e1000_context_desc *)&txDescArray[index];
+
+            txBufArray[index].mbuf = NULL;
+            txBufArray[index].numDescs = 0;
+
+#ifdef DEBUG
+            txBufArray[index].pad = numSegs;
+#endif
+
+            contDesc->lower_setup.ip_config = OSSwapHostToLittleInt32(ipConfig);
+            contDesc->upper_setup.tcp_config = OSSwapHostToLittleInt32(tcpConfig);
+            contDesc->cmd_and_length = OSSwapHostToLittleInt32(len);
+            contDesc->tcp_seg_setup.data = OSSwapHostToLittleInt32(mss);
+
+            ++index &= kTxDescMask;
+        }
+        /* And finally fill in the data descriptors. */
+        for (i = 0; i < numSegs; i++) {
+            desc = &txDescArray[index];
+            word1 = (cmd | (txSegments[i].length & 0x000fffff));
+
+            if (i == lastSeg) {
+                word1 |= opts;
+                txBufArray[index].mbuf = m;
+                txBufArray[index].numDescs = numDescs;
+            } else {
+                txBufArray[index].mbuf = NULL;
+                txBufArray[index].numDescs = 0;
+            }
+
+#ifdef DEBUG
+            txBufArray[index].pad = (UInt32)txSegments[i].length;
+#endif
+
+            desc->buffer_addr = OSSwapHostToLittleInt64(txSegments[i].location);
+            desc->lower.data = OSSwapHostToLittleInt32(word1);
+            desc->upper.data = OSSwapHostToLittleInt32(word2);
+
+            ++index &= kTxDescMask;
+        }
+        count++;
+    }
+    if (count)
+        intelUpdateTxDescTail(txNextDescIndex);
+
+    result = (txNumFreeDesc >= (kMaxSegs + kTxSpareDescs)) ? kIOReturnSuccess : kIOReturnNoResources;
+
+    //DebugLog("[IntelMausi]: outputStart() <===\n");
+
+done:
+    return result;
+}
+
+#else
+
+UInt32 IntelMausi::outputPacket(mbuf_t m, void *param)
+{
+    IOPhysicalSegment txSegments[kMaxSegs];
+    struct e1000_data_desc *desc;
+    struct e1000_context_desc *contDesc;
+    UInt32 result = kIOReturnOutputDropped;
+    UInt32 numDescs = 0;
+    UInt32 cmd = 0;
+    UInt32 opts = (E1000_TXD_CMD_IDE | E1000_TXD_CMD_EOP | E1000_TXD_CMD_IFCS | E1000_TXD_CMD_RS);
+    UInt32 word2 = 0;
+    UInt32 len = 0;
+    UInt32 mss = 0;
+    UInt32 ipConfig = 0;
+    UInt32 tcpConfig = 0;
+    UInt32 word1;
+    UInt32 numSegs;
+    UInt32 lastSeg;
+    UInt32 index;
+    UInt32 offloadFlags = 0;
+    UInt16 vlanTag;
+    UInt16 i;
+
+    //DebugLog("[IntelMausi]: outputPacket() ===>\n");
+
+    if (!(isEnabled && linkUp) || forceReset) {
+        DebugLog("[IntelMausi]: Interface down. Dropping packet.\n");
+        goto error;
+    }
+    if (mbuf_get_tso_requested(m, &offloadFlags, &mss)) {
+        DebugLog("[IntelMausi]: mbuf_get_tso_requested() failed. Dropping packet.\n");
+        goto done;
+    }
+    /* First prepare the header and the command bits. */
+    mbuf_get_csum_requested(m, &offloadFlags, &mss);
+
+    if (offloadFlags & (kChecksumUDPIPv6 | kChecksumTCPIPv6 | kChecksumIP | kChecksumUDP | kChecksumTCP)) {
+        numDescs = 1;
+        cmd = (E1000_TXD_CMD_DEXT | E1000_TXD_DTYP_D);
+
+        if (offloadFlags & kChecksumTCP) {
+            ipConfig = ((kIPv4CSumEnd << 16) | (kIPv4CSumOffset << 8) | kIPv4CSumStart);
+            tcpConfig = ((kTCPv4CSumEnd << 16) | (kTCPv4CSumOffset << 8) | kTCPv4CSumStart);
+            len = (E1000_TXD_CMD_DEXT | E1000_TXD_CMD_IP | E1000_TXD_CMD_TCP);
+            mss = 0;
+
+            word2 = (E1000_TXD_OPTS_TXSM | E1000_TXD_OPTS_IXSM);
+        } else if (offloadFlags & kChecksumUDP) {
+            ipConfig = ((kIPv4CSumEnd << 16) | (kIPv4CSumOffset << 8) | kIPv4CSumStart);
+            tcpConfig = ((kUDPv4CSumEnd << 16) | (kUDPv4CSumOffset << 8) | kUDPv4CSumStart);
+            len = (E1000_TXD_CMD_DEXT | E1000_TXD_CMD_IP);
+            mss = 0;
+
+            word2 = (E1000_TXD_OPTS_TXSM | E1000_TXD_OPTS_IXSM);
+        } else if (offloadFlags & kChecksumIP) {
+            ipConfig = ((kIPv4CSumEnd << 16) | (kIPv4CSumOffset << 8) | kIPv4CSumStart);
+            tcpConfig = 0;
+            mss = 0;
+            len = (E1000_TXD_CMD_DEXT | E1000_TXD_CMD_IP);
+
+            word2 = E1000_TXD_OPTS_IXSM;
+        } else if (offloadFlags & kChecksumTCPIPv6) {
+            ipConfig = ((kIPv6CSumEnd << 16) | (kIPv6CSumOffset << 8) | kIPv6CSumStart);
+            tcpConfig = ((kTCPv6CSumEnd << 16) | (kTCPv6CSumOffset << 8) | kTCPv6CSumStart);
+            len = (E1000_TXD_CMD_DEXT | E1000_TXD_CMD_TCP);
+            mss = 0;
+
+            word2 = E1000_TXD_OPTS_TXSM;
+        } else if (offloadFlags & kChecksumUDPIPv6) {
+            ipConfig = ((kIPv6CSumEnd << 16) | (kIPv6CSumOffset << 8) | kIPv6CSumStart);
+            tcpConfig = ((kUDPv6CSumEnd << 16) | (kUDPv6CSumOffset << 8) | kUDPv6CSumStart);
+            len = E1000_TXD_CMD_DEXT;
+            mss = 0;
+
+            word2 = E1000_TXD_OPTS_TXSM;
+        }
     }
     /* Next get the VLAN tag and command bit. */
     if (!mbuf_get_vlan_tag(m, &vlanTag)) {
@@ -1250,13 +1160,13 @@ UInt32 IntelMausi::outputPacket(mbuf_t m, void *param)
     numDescs += numSegs;
 
     if (!numSegs) {
-        DebugLog("Ethernet [IntelMausi]: getPhysicalSegmentsWithCoalesce() failed. Dropping packet.\n");
+        DebugLog("[IntelMausi]: getPhysicalSegmentsWithCoalesce() failed. Dropping packet.\n");
         etherStats->dot3TxExtraEntry.resourceErrors++;
         goto error;
     }
     /* Alloc required number of descriptors. We leave at least kTxSpareDescs unused. */
     if ((txNumFreeDesc <= (numDescs + kTxSpareDescs))) {
-        DebugLog("Ethernet [IntelMausi]: Not enough descriptors. Stalling.\n");
+        DebugLog("[IntelMausi]: Not enough descriptors. Stalling.\n");
         result = kIOReturnOutputStall;
         stalled = true;
         goto done;
@@ -1343,7 +1253,7 @@ UInt32 IntelMausi::outputPacket(mbuf_t m, void *param)
     result = kIOReturnOutputSuccess;
 
 done:
-    //DebugLog("outputPacket() <===\n");
+    //DebugLog("[IntelMausi]: outputPacket() <===\n");
 
     return result;
 
@@ -1356,37 +1266,37 @@ error:
 
 void IntelMausi::getPacketBufferConstraints(IOPacketBufferConstraints *constraints) const
 {
-    DebugLog("getPacketBufferConstraints() ===>\n");
-    
-	constraints->alignStart = kIOPacketBufferAlign1;
-	constraints->alignLength = kIOPacketBufferAlign1;
-    
-    DebugLog("getPacketBufferConstraints() <===\n");
+    DebugLog("[IntelMausi]: getPacketBufferConstraints() ===>\n");
+
+    constraints->alignStart = kIOPacketBufferAlign1;
+    constraints->alignLength = kIOPacketBufferAlign1;
+
+    DebugLog("[IntelMausi]: getPacketBufferConstraints() <===\n");
 }
 
 IOOutputQueue* IntelMausi::createOutputQueue()
 {
-    DebugLog("createOutputQueue() ===>\n");
-    
-    DebugLog("createOutputQueue() <===\n");
-    
+    DebugLog("[IntelMausi]: createOutputQueue() ===>\n");
+
+    DebugLog("[IntelMausi]: createOutputQueue() <===\n");
+
     return IOBasicOutputQueue::withTarget(this);
 }
 
 const OSString* IntelMausi::newVendorString() const
 {
-    DebugLog("newVendorString() ===>\n");
-    
-    DebugLog("newVendorString() <===\n");
-    
+    DebugLog("[IntelMausi]: newVendorString() ===>\n");
+
+    DebugLog("[IntelMausi]: newVendorString() <===\n");
+
     return OSString::withCString("Intel");
 }
 
 const OSString* IntelMausi::newModelString() const
 {
-    DebugLog("newModelString() ===>\n");
-    DebugLog("newModelString() <===\n");
-    
+    DebugLog("[IntelMausi]: newModelString() ===>\n");
+    DebugLog("[IntelMausi]: newModelString() <===\n");
+
     return OSString::withCString(deviceTable[chip].deviceName);
 }
 
@@ -1399,34 +1309,34 @@ bool IntelMausi::configureInterface(IONetworkInterface *interface)
 #endif /* __PRIVATE_SPI__ */
 
     bool result;
-    
-    DebugLog("configureInterface() ===>\n");
-    
+
+    DebugLog("[IntelMausi]: configureInterface() ===>\n");
+
     result = super::configureInterface(interface);
-    
+
     if (!result)
         goto done;
-	
+
     /* Get the generic network statistics structure. */
     data = interface->getParameter(kIONetworkStatsKey);
-    
+
     if (data) {
         netStats = (IONetworkStats *)data->getBuffer();
-        
+
         if (!netStats) {
-            IOLog("Ethernet [IntelMausi]: Error getting IONetworkStats\n.");
+            IOLog("[IntelMausi]: Error getting IONetworkStats\n.");
             result = false;
             goto done;
         }
     }
     /* Get the Ethernet statistics structure. */
     data = interface->getParameter(kIOEthernetStatsKey);
-    
+
     if (data) {
         etherStats = (IOEthernetStats *)data->getBuffer();
-        
+
         if (!etherStats) {
-            IOLog("Ethernet [IntelMausi]: Error getting IOEthernetStats\n.");
+            IOLog("[IntelMausi]: Error getting IOEthernetStats\n.");
             result = false;
             goto done;
         }
@@ -1434,16 +1344,16 @@ bool IntelMausi::configureInterface(IONetworkInterface *interface)
 
 #ifdef __PRIVATE_SPI__
     error = interface->configureOutputPullModel(384, 0, 0, IONetworkInterface::kOutputPacketSchedulingModelNormal);
-    
+
     if (error != kIOReturnSuccess) {
-        IOLog("Ethernet [IntelMausi]: configureOutputPullModel() failed\n.");
+        IOLog("[IntelMausi]: configureOutputPullModel() failed\n.");
         result = false;
         goto done;
     }
     error = interface->configureInputPacketPolling(kNumRxDesc, kIONetworkWorkLoopSynchronous);
-    
+
     if (error != kIOReturnSuccess) {
-        IOLog("Ethernet [IntelMausi]: configureInputPacketPolling() failed\n.");
+        IOLog("[IntelMausi]: configureInputPacketPolling() failed\n.");
         result = false;
         goto done;
     }
@@ -1451,30 +1361,30 @@ bool IntelMausi::configureInterface(IONetworkInterface *interface)
 
     snprintf(modelName, kNameLenght, "Intel %s PCI Express Gigabit Ethernet", deviceTable[chip].deviceName);
     setProperty("model", modelName);
-    
+
 done:
-    DebugLog("configureInterface() <===\n");
+    DebugLog("[IntelMausi]: configureInterface() <===\n");
 
     return result;
 }
 
 bool IntelMausi::createWorkLoop()
 {
-    DebugLog("createWorkLoop() ===>\n");
-    
+    DebugLog("[IntelMausi]: createWorkLoop() ===>\n");
+
     workLoop = IOWorkLoop::workLoop();
-    
-    DebugLog("createWorkLoop() <===\n");
-    
+
+    DebugLog("[IntelMausi]: createWorkLoop() <===\n");
+
     return workLoop ? true : false;
 }
 
 IOWorkLoop* IntelMausi::getWorkLoop() const
 {
-    DebugLog("getWorkLoop() ===>\n");
-    
-    DebugLog("getWorkLoop() <===\n");
-    
+    DebugLog("[IntelMausi]: getWorkLoop() ===>\n");
+
+    DebugLog("[IntelMausi]: getWorkLoop() <===\n");
+
     return workLoop;
 }
 
@@ -1482,24 +1392,24 @@ IOReturn IntelMausi::setPromiscuousMode(bool active)
 {
     struct e1000_hw *hw = &adapterData.hw;
     UInt32 rxControl;
-    
-    DebugLog("setPromiscuousMode() ===>\n");
-    
+
+    DebugLog("[IntelMausi]: setPromiscuousMode() ===>\n");
+
     rxControl = intelReadMem32(E1000_RCTL);
     rxControl &= ~(E1000_RCTL_UPE | E1000_RCTL_MPE);
 
     if (active) {
-        DebugLog("Ethernet [IntelMausi]: Promiscuous mode enabled.\n");
+        DebugLog("[IntelMausi]: Promiscuous mode enabled.\n");
         rxControl |= (E1000_RCTL_UPE | E1000_RCTL_MPE);
     } else {
-        DebugLog("Ethernet [IntelMausi]: Promiscuous mode disabled.\n");
+        DebugLog("[IntelMausi]: Promiscuous mode disabled.\n");
         hw->mac.ops.update_mc_addr_list(hw, (UInt8 *)mcAddrList, mcListCount);
     }
     intelWriteMem32(E1000_RCTL, rxControl);
     promiscusMode = active;
 
-    DebugLog("setPromiscuousMode() <===\n");
-    
+    DebugLog("[IntelMausi]: setPromiscuousMode() <===\n");
+
     return kIOReturnSuccess;
 }
 
@@ -1508,11 +1418,11 @@ IOReturn IntelMausi::setMulticastMode(bool active)
     struct e1000_hw *hw = &adapterData.hw;
     UInt32 rxControl;
 
-    DebugLog("setMulticastMode() ===>\n");
+    DebugLog("[IntelMausi]: setMulticastMode() ===>\n");
 
     rxControl = intelReadMem32(E1000_RCTL);
     rxControl &= ~(E1000_RCTL_UPE | E1000_RCTL_MPE);
-    
+
     if (active)
         hw->mac.ops.update_mc_addr_list(hw, (UInt8 *)mcAddrList, mcListCount);
     else
@@ -1521,8 +1431,8 @@ IOReturn IntelMausi::setMulticastMode(bool active)
     intelWriteMem32(E1000_RCTL, rxControl);
     multicastMode = active;
 
-    DebugLog("setMulticastMode() <===\n");
-    
+    DebugLog("[IntelMausi]: setMulticastMode() <===\n");
+
     return kIOReturnSuccess;
 }
 
@@ -1533,12 +1443,12 @@ IOReturn IntelMausi::setMulticastList(IOEthernetAddress *addrs, UInt32 count)
     vm_size_t newSize;
     IOReturn result = kIOReturnNoMemory;
 
-    DebugLog("setMulticastList() ===>\n");
+    DebugLog("[IntelMausi]: setMulticastList() ===>\n");
 
     if (count) {
         newSize = count * sizeof(IOEthernetAddress);
         newList = (IOEthernetAddress *)IOMalloc(newSize);
-        
+
         if (newList) {
             if (mcAddrList)
                 IOFree(mcAddrList, mcListCount * sizeof(IOEthernetAddress));
@@ -1561,21 +1471,21 @@ IOReturn IntelMausi::setMulticastList(IOEthernetAddress *addrs, UInt32 count)
         result = kIOReturnSuccess;
     }
 
-    DebugLog("setMulticastList() <===\n");
-    
+    DebugLog("[IntelMausi]: setMulticastList() <===\n");
+
     return result;
 }
 
 IOReturn IntelMausi::getChecksumSupport(UInt32 *checksumMask, UInt32 checksumFamily, bool isOutput)
 {
     IOReturn result = kIOReturnUnsupported;
-    
-    DebugLog("getChecksumSupport() ===>\n");
-    
+
+    DebugLog("[IntelMausi]: getChecksumSupport() ===>\n");
+
     if ((checksumFamily == kChecksumFamilyTCPIP) && checksumMask) {
         if (isOutput) {
             *checksumMask = (kChecksumTCP | kChecksumUDP | kChecksumIP);
-            
+
             if (enableCSO6)
                 *checksumMask |= (kChecksumTCPIPv6 | kChecksumUDPIPv6);
         } else {
@@ -1583,61 +1493,62 @@ IOReturn IntelMausi::getChecksumSupport(UInt32 *checksumMask, UInt32 checksumFam
         }
         result = kIOReturnSuccess;
     }
-    DebugLog("getChecksumSupport() <===\n");
-    
+    DebugLog("[IntelMausi]: getChecksumSupport() <===\n");
+
     return result;
 }
 
 UInt32 IntelMausi::getFeatures() const
 {
     UInt32 features = (kIONetworkFeatureMultiPages | kIONetworkFeatureHardwareVlan);
-    
-    DebugLog("getFeatures() ===>\n");
-    
-    if (enableTSO4)
-        features |= kIONetworkFeatureTSOIPv4;
-    
-    if (enableTSO6)
-        features |= kIONetworkFeatureTSOIPv6;
-        
-    DebugLog("getFeatures() <===\n");
-    
+
+    DebugLog("[IntelMausi]: getFeatures() ===>\n");
+
+    DebugLog("[IntelMausi]: getFeatures() <===\n");
+
     return features;
 }
 
 IOReturn IntelMausi::setWakeOnMagicPacket(bool active)
 {
     IOReturn result = kIOReturnUnsupported;
-    
-    DebugLog("setWakeOnMagicPacket() ===>\n");
-    
+
+    DebugLog("[IntelMausi]: setWakeOnMagicPacket() ===>\n");
+
     if (wolCapable) {
         bool tmp = 0;
         wolActive = ! PE_parse_boot_argn("-mausi_no_wol", &tmp, 0);
-        DebugLog("Ethernet [IntelMausi]: Wake on magic packet %s.\n", wolActive ? "enabled" : "disabled");
+        DebugLog("[IntelMausi]: Wake on magic packet %s.\n", wolActive ? "enabled" : "disabled");
         result = kIOReturnSuccess;
     }
-    
-    DebugLog("setWakeOnMagicPacket() <===\n");
-    
+
+    DebugLog("[IntelMausi]: setWakeOnMagicPacket() <===\n");
+
     return result;
 }
 
 IOReturn IntelMausi::getPacketFilters(const OSSymbol *group, UInt32 *filters) const
 {
     IOReturn result = kIOReturnSuccess;
-    
-    DebugLog("getPacketFilters() ===>\n");
-    
+
+    DebugLog("[IntelMausi]: getPacketFilters() ===>\n");
+
     if ((group == gIOEthernetWakeOnLANFilterGroup) && wolCapable) {
-        *filters = kIOEthernetWakeOnMagicPacket;
-        DebugLog("Ethernet [IntelMausi]: kIOEthernetWakeOnMagicPacket added to filters.\n");
+        if (enableWoM) {
+            *filters = (kIOEthernetWakeOnMagicPacket | kIOEthernetWakeOnPacketAddressMatch);
+
+            DebugLog("[IntelMausi]: kIOEthernetWakeOnMagicPacket and kIOEthernetWakeOnPacketAddressMatch added to filters.\n");
+        } else {
+            *filters = kIOEthernetWakeOnMagicPacket;
+
+            DebugLog("[IntelMausi]: kIOEthernetWakeOnMagicPacket added to filters.\n");
+        }
     } else {
         result = super::getPacketFilters(group, filters);
     }
-    
-    DebugLog("getPacketFilters() <===\n");
-    
+
+    DebugLog("[IntelMausi]: getPacketFilters() <===\n");
+
     return result;
 }
 
@@ -1645,19 +1556,19 @@ IOReturn IntelMausi::setHardwareAddress(const IOEthernetAddress *addr)
 {
     struct e1000_hw *hw = &adapterData.hw;
     IOReturn result = kIOReturnError;
-    
-    DebugLog("setHardwareAddress() ===>\n");
-    
+
+    DebugLog("[IntelMausi]: setHardwareAddress() ===>\n");
+
     if (addr && is_valid_ether_addr(&addr->bytes[0])) {
         memcpy(hw->mac.addr, &addr->bytes[0], kIOEthernetAddressSize);
-        
+
         hw->mac.ops.rar_set(hw, hw->mac.addr, 0);
-        
+
         result = kIOReturnSuccess;
     }
-    
-    DebugLog("setHardwareAddress() <===\n");
-    
+
+    DebugLog("[IntelMausi]: setHardwareAddress() <===\n");
+
     return result;
 }
 
@@ -1665,78 +1576,78 @@ IOReturn IntelMausi::setHardwareAddress(const IOEthernetAddress *addr)
 IOReturn IntelMausi::getHardwareAddress(IOEthernetAddress *addr)
 {
     IOReturn result = kIOReturnError;
-    
-    DebugLog("getHardwareAddress() ===>\n");
-    
-    //IOLog("Ethernet [IntelMausi]: RAH = 0x%x, RAL = 0x%x\n", intelReadMem32(E1000_RAH(0)), intelReadMem32(E1000_RAL(0)));
-    
+
+    DebugLog("[IntelMausi]: getHardwareAddress() ===>\n");
+
+    //IOLog("[IntelMausi]: RAH = 0x%x, RAL = 0x%x\n", intelReadMem32(E1000_RAH(0)), intelReadMem32(E1000_RAL(0)));
+
     if (addr) {
         memcpy(&addr->bytes[0], adapterData.hw.mac.addr, kIOEthernetAddressSize);
-        
+
         if (is_valid_ether_addr(&addr->bytes[0]))
             result = kIOReturnSuccess;
     }
-    
-    DebugLog("getHardwareAddress() <===\n");
-    
+
+    DebugLog("[IntelMausi]: getHardwareAddress() <===\n");
+
     return result;
 }
 
 IOReturn IntelMausi::selectMedium(const IONetworkMedium *medium)
 {
     IOReturn result = kIOReturnSuccess;
-    
-    DebugLog("selectMedium() ===>\n");
+
+    DebugLog("[IntelMausi]: selectMedium() ===>\n");
 
     if (medium) {
         intelSetupAdvForMedium(medium);
         setCurrentMedium(medium);
-        
+
         timerSource->cancelTimeout();
         updateStatistics(&adapterData);
         intelRestart();
     }
 
-    DebugLog("selectMedium() <===\n");
-    
+    DebugLog("[IntelMausi]: selectMedium() <===\n");
+
 done:
     return result;
 }
 
 IOReturn IntelMausi::getMaxPacketSize(UInt32 * maxSize) const
 {
-    DebugLog("getMaxPacketSize() ===>\n");
-    
+    DebugLog("[IntelMausi]: getMaxPacketSize() ===>\n");
+
     *maxSize = kMaxPacketSize;
-    
-    DebugLog("getMaxPacketSize() <===\n");
-    
+
+    DebugLog("[IntelMausi]: getMaxPacketSize() <===\n");
+
     return kIOReturnSuccess;
 }
 
 IOReturn IntelMausi::setMaxPacketSize(UInt32 maxSize)
 {
     IOReturn result = kIOReturnError;
-    
-    DebugLog("setMaxPacketSize() ===>\n");
-    
+
+    DebugLog("[IntelMausi]: setMaxPacketSize() ===>\n");
+
     if (maxSize <= kMaxPacketSize) {
         mtu = maxSize - (ETH_HLEN + ETH_FCS_LEN);
         adapterData.max_frame_size = maxSize;
 
-        DebugLog("Ethernet [IntelMausi]: maxSize: %u, mtu: %u\n", maxSize, mtu);
-        
+        DebugLog("[IntelMausi]: maxSize: %u, mtu: %u\n", maxSize, mtu);
+
         /* Force reinitialization. */
         setLinkDown();
         timerSource->cancelTimeout();
         updateStatistics(&adapterData);
         intelRestart();
-        
+
         result = kIOReturnSuccess;
     }
-    
-    DebugLog("setMaxPacketSize() <===\n");
-    
+
+    DebugLog("[IntelMausi]: setMaxPacketSize() <===\n");
+
     return result;
 }
 
@@ -1746,21 +1657,21 @@ void IntelMausi::txInterrupt(IOOptionBits options)
 {
     UInt32 descStatus;
     SInt32 cleaned;
-    
+
     while (txDirtyIndex != txCleanBarrierIndex) {
         if (txBufArray[txDirtyIndex].mbuf) {
             descStatus = OSSwapLittleToHostInt32(txDescArray[txDirtyIndex].upper.data);
-            
+
             if (!(descStatus & E1000_TXD_STAT_DD))
                 goto done;
-            
+
             /* First free the attached mbuf and clean up the buffer info. */
             freePacketEx(txBufArray[txDirtyIndex].mbuf, options);
             txBufArray[txDirtyIndex].mbuf = NULL;
-            
+
             cleaned = txBufArray[txDirtyIndex].numDescs;
             txBufArray[txDirtyIndex].numDescs = 0;
-            
+
             /* Finally update the number of free descriptors. */
             OSAddAtomic(cleaned, &txNumFreeDesc);
             txDescDoneCount += cleaned;
@@ -1769,15 +1680,15 @@ void IntelMausi::txInterrupt(IOOptionBits options)
         ++txDirtyIndex &= kTxDescMask;
     }
 
-    //DebugLog("Ethernet [IntelMausi]: txInterrupt oldIndex=%u newIndex=%u\n", oldDirtyIndex, txDirtyDescIndex);
-    
+    //DebugLog("[IntelMausi]: txInterrupt oldIndex=%u newIndex=%u\n", oldDirtyIndex, txDirtyDescIndex);
+
 done:
 #ifdef __PRIVATE_SPI__
     if (txNumFreeDesc > kTxQueueWakeTreshhold)
         netif->signalOutputThread();
 #else
     if (stalled && (txNumFreeDesc > kTxQueueWakeTreshhold)) {
-        DebugLog("Ethernet [IntelMausi]: Restart stalled queue!\n");
+        DebugLog("[IntelMausi]: Restart stalled queue!\n");
         txQueue->service(IOBasicOutputQueue::kServiceAsync);
         stalled = false;
     }
@@ -1810,30 +1721,30 @@ UInt32 IntelMausi::rxInterrupt(IONetworkInterface *interface, uint32_t maxCount,
         bufPkt = rxBufArray[rxNextDescIndex].mbuf;
         pktSize = OSSwapLittleToHostInt16(desc->wb.upper.length);
         vlanTag = (status & E1000_RXD_STAT_VP) ? (OSSwapLittleToHostInt16(desc->wb.upper.vlan) & E1000_RXD_SPC_VLAN_MASK) : 0;
-        
+
         /* Skip bad packet. */
         if (status & E1000_RXDEXT_ERR_FRAME_ERR_MASK) {
-            DebugLog("Ethernet [IntelMausi]: Bad packet.\n");
+            DebugLog("[IntelMausi]: Bad packet.\n");
             etherStats->dot3StatsEntry.internalMacReceiveErrors++;
             discardPacketFragment(true);
             goto nextDesc;
         }
         newPkt = replaceOrCopyPacket(&bufPkt, pktSize, &replaced);
-        
+
         if (!newPkt) {
             /* Allocation of a new packet failed so that we must leave the original packet in place. */
-            //DebugLog("Ethernet [IntelMausi]: replaceOrCopyPacket() failed.\n");
+            //DebugLog("[IntelMausi]: replaceOrCopyPacket() failed.\n");
             etherStats->dot3RxExtraEntry.resourceErrors++;
             discardPacketFragment(true);
             goto nextDesc;
         }
-        
+
         /* If the packet was replaced we have to update the descriptor's buffer address. */
         if (replaced) {
             n = rxMbufCursor->getPhysicalSegments(bufPkt, &rxSegment, 1);
 
             if ((n != 1) || (rxSegment.location & 0x07ff)) {
-                DebugLog("Ethernet [IntelMausi]: getPhysicalSegments() failed.\n");
+                DebugLog("[IntelMausi]: getPhysicalSegments() failed.\n");
                 etherStats->dot3RxExtraEntry.resourceErrors++;
                 freePacketEx(bufPkt);
                 discardPacketFragment(true);
@@ -1851,7 +1762,7 @@ UInt32 IntelMausi::rxInterrupt(IONetworkInterface *interface, uint32_t maxCount,
                 /* This is the last buffer of a jumbo frame. */
                 mbuf_setflags_mask(newPkt, 0, MBUF_PKTHDR);
                 mbuf_setnext(rxPacketTail, newPkt);
-                
+
                 rxPacketSize += pktSize;
                 rxPacketTail = newPkt;
             } else {
@@ -1870,7 +1781,7 @@ UInt32 IntelMausi::rxInterrupt(IONetworkInterface *interface, uint32_t maxCount,
 
             mbuf_pkthdr_setlen(rxPacketHead, rxPacketSize);
             interface->enqueueInputPacket(rxPacketHead, pollQueue);
-            
+
             rxPacketHead = rxPacketTail = NULL;
             rxPacketSize = 0;
 
@@ -1889,12 +1800,12 @@ UInt32 IntelMausi::rxInterrupt(IONetworkInterface *interface, uint32_t maxCount,
                 rxPacketSize = pktSize;
             }
         }
-        
+
         /* Finally update the descriptor and get the next one to examine. */
     nextDesc:
         desc->read.buffer_addr = OSSwapHostToLittleInt64(addr);
         desc->read.reserved = 0;
-        
+
         ++rxNextDescIndex &= kRxDescMask;
         desc = &rxDescArray[rxNextDescIndex];
         rxCleanedCount++;
@@ -1908,7 +1819,7 @@ UInt32 IntelMausi::rxInterrupt(IONetworkInterface *interface, uint32_t maxCount,
             intelUpdateRxDescTail((rxNextDescIndex - 1) & kRxDescMask);
         else
             intelWriteMem32(E1000_RDT(0), (rxNextDescIndex - 1) & kRxDescMask);
-        
+
         rxCleanedCount = 0;
     }
     return goodPkts;
@@ -1935,7 +1846,7 @@ void IntelMausi::rxInterrupt()
 
         /* As we don't support jumbo frames we consider fragmented packets as errors. */
         if (!(status & E1000_RXD_STAT_EOP)) {
-            DebugLog("Ethernet [IntelMausi]: Fragmented packet.\n");
+            DebugLog("[IntelMausi]: Fragmented packet.\n");
             etherStats->dot3StatsEntry.frameTooLongs++;
             goto nextDesc;
         }
@@ -1944,7 +1855,7 @@ void IntelMausi::rxInterrupt()
 
         /* Skip bad packet. */
         if (status & E1000_RXDEXT_ERR_FRAME_ERR_MASK) {
-            DebugLog("Ethernet [IntelMausi]: Bad packet.\n");
+            DebugLog("[IntelMausi]: Bad packet.\n");
             etherStats->dot3StatsEntry.internalMacReceiveErrors++;
             goto nextDesc;
         }
@@ -1952,7 +1863,7 @@ void IntelMausi::rxInterrupt()
 
         if (!newPkt) {
             /* Allocation of a new packet failed so that we must leave the original packet in place. */
-            //DebugLog("Ethernet [IntelMausi]: replaceOrCopyPacket() failed.\n");
+            //DebugLog("[IntelMausi]: replaceOrCopyPacket() failed.\n");
             etherStats->dot3RxExtraEntry.resourceErrors++;
             goto nextDesc;
         }
@@ -1960,7 +1871,7 @@ void IntelMausi::rxInterrupt()
         /* If the packet was replaced we have to update the descriptor's buffer address. */
         if (replaced) {
             if (rxMbufCursor->getPhysicalSegments(bufPkt, &rxSegment, 1) != 1) {
-                DebugLog("Ethernet [IntelMausi]: getPhysicalSegments() failed.\n");
+                DebugLog("[IntelMausi]: getPhysicalSegments() failed.\n");
                 etherStats->dot3RxExtraEntry.resourceErrors++;
                 freePacket(bufPkt);
                 goto nextDesc;
@@ -2009,9 +1920,9 @@ void IntelMausi::rxInterrupt()
 
 void IntelMausi::checkLinkStatus()
 {
-	struct e1000_hw *hw = &adapterData.hw;
+    struct e1000_hw *hw = &adapterData.hw;
     bool link;
-    
+
     hw->mac.get_link_status = true;
 
     /* ICH8 workaround-- Call gig speed drop workaround on cable
@@ -2023,8 +1934,8 @@ void IntelMausi::checkLinkStatus()
     }
     /* Now check the link state. */
     link = intelCheckLink(&adapterData);
-    
-    DebugLog("Ethernet [IntelMausi]: checkLinkStatus() returned %u.\n", link);
+
+    DebugLog("[IntelMausi]: checkLinkStatus() returned %u.\n", link);
 
     if (linkUp) {
         if (link) {
@@ -2055,7 +1966,7 @@ void IntelMausi::checkLinkStatus()
 
 void IntelMausi::interruptOccurred(OSObject *client, IOInterruptEventSource *src, int count)
 {
-	struct e1000_hw *hw = &adapterData.hw;
+    struct e1000_hw *hw = &adapterData.hw;
     UInt32 icr = intelReadMem32(E1000_ICR); /* read ICR disables interrupts using IAM */
 
 #ifdef __PRIVATE_SPI__
@@ -2086,20 +1997,20 @@ void IntelMausi::interruptOccurred(OSObject *client, IOInterruptEventSource *src
     }
 #endif /* __PRIVATE_SPI__ */
 
-	/* Reset on uncorrectable ECC error */
+    /* Reset on uncorrectable ECC error */
     if ((icr & E1000_ICR_ECCER) && (hw->mac.type >= e1000_pch_lpt)) {
         UInt32 pbeccsts = intelReadMem32(E1000_PBECCSTS);
 
         etherStats->dot3StatsEntry.internalMacReceiveErrors += (pbeccsts & E1000_PBECCSTS_UNCORR_ERR_CNT_MASK) >>E1000_PBECCSTS_UNCORR_ERR_CNT_SHIFT;
         etherStats->dot3TxExtraEntry.resets++;
 
-        IOLog("Ethernet [IntelMausi]: Uncorrectable ECC error. Reseting chip.\n");
-		intelRestart();
+        IOLog("[IntelMausi]: Uncorrectable ECC error. Reseting chip.\n");
+        intelRestart();
         return;
-	}
-	if (icr & (E1000_ICR_LSC | E1000_IMS_RXSEQ)) {
+    }
+    if (icr & (E1000_ICR_LSC | E1000_IMS_RXSEQ)) {
         checkLinkStatus();
-	}
+    }
     /* Reenable interrupts by setting the bits in the mask register. */
     intelWriteMem32(E1000_IMS, icr);
 }
@@ -2110,36 +2021,36 @@ void IntelMausi::interruptOccurred(OSObject *client, IOInterruptEventSource *src
 
 IOReturn IntelMausi::setInputPacketPollingEnable(IONetworkInterface *interface, bool enabled)
 {
-    //DebugLog("setInputPacketPollingEnable() ===>\n");
-    
+    //DebugLog("[IntelMausi]: setInputPacketPollingEnable() ===>\n");
+
     if (isEnabled) {
         if (enabled) {
             intelWriteMem32(E1000_IMC, ~(E1000_ICR_LSC | E1000_IMS_RXSEQ));
             intelFlush();
         } else {
-            intelEnableIRQ(intrMask);
+            intelEnableIRQ(&adapterData);
         }
         polling = enabled;
     }
-    //DebugLog("input polling %s.\n", enabled ? "enabled" : "disabled");
-    
-    //DebugLog("setInputPacketPollingEnable() <===\n");
-    
+    //DebugLog("[IntelMausi]: input polling %s.\n", enabled ? "enabled" : "disabled");
+
+    //DebugLog("[IntelMausi]: setInputPacketPollingEnable() <===\n");
+
     return kIOReturnSuccess;
 }
 
 void IntelMausi::pollInputPackets(IONetworkInterface *interface, uint32_t maxCount, IOMbufQueue *pollQueue, void *context )
 {
-    //DebugLog("pollInputPackets() ===>\n");
-    
+    //DebugLog("[IntelMausi]: pollInputPackets() ===>\n");
+
     if (polling) {
         rxInterrupt(interface, maxCount, pollQueue, context);
-        
+
         /* Finally cleanup the transmitter ring. */
         txInterrupt();
     }
-    
-    //DebugLog("pollInputPackets() <===\n");
+
+    //DebugLog("[IntelMausi]: pollInputPackets() <===\n");
 }
 
 #endif /* __PRIVATE_SPI__ */
@@ -2149,7 +2060,7 @@ void IntelMausi::pollInputPackets(IONetworkInterface *interface, uint32_t maxCou
 void IntelMausi::setLinkUp()
 {
     struct e1000_hw *hw = &adapterData.hw;
-	struct e1000_phy_info *phy = &hw->phy;
+    struct e1000_phy_info *phy = &hw->phy;
     const char *flowName;
     const char *speedName;
     const char *duplexName;
@@ -2159,20 +2070,20 @@ void IntelMausi::setLinkUp()
     UInt32 fcIndex;
     UInt32 tctl, rctl, ctrl;
     UInt32 rate;
-    
+
     eeeMode = 0;
     eeeName = eeeNames[kEEETypeNo];
-    
+
     /* update snapshot of PHY registers on LSC */
     intelPhyReadStatus(&adapterData);
     hw->mac.ops.get_link_up_info(hw, &adapterData.link_speed, &adapterData.link_duplex);
-    
+
     /* check if SmartSpeed worked */
     e1000e_check_downshift(hw);
-    
+
     if (phy->speed_downgraded)
-        IOLog("Ethernet [IntelMausi]: Link Speed was downgraded by SmartSpeed\n");
-    
+        IOLog("[IntelMausi]: Link Speed was downgraded by SmartSpeed\n");
+
     /* On supported PHYs, check for duplex mismatch only
      * if link has autonegotiated at 10/100 half
      */
@@ -2180,29 +2091,29 @@ void IntelMausi::setLinkUp()
         hw->mac.autoneg && (adapterData.link_speed == SPEED_10 || adapterData.link_speed == SPEED_100) &&
         (adapterData.link_duplex == HALF_DUPLEX)) {
         UInt16 autoneg_exp;
-        
+
         e1e_rphy(hw, MII_EXPANSION, &autoneg_exp);
-        
+
         if (!(autoneg_exp & EXPANSION_NWAY))
-            IOLog("Ethernet [IntelMausi]: Autonegotiated half duplex but link partner cannot autoneg.  Try forcing full duplex if link gets many collisions.\n");
+            IOLog("[IntelMausi]: Autonegotiated half duplex but link partner cannot autoneg.  Try forcing full duplex if link gets many collisions.\n");
     }
-    
+
     /* Get link speed, duplex and flow-control mode. */
     ctrl = intelReadMem32(E1000_CTRL) & (E1000_CTRL_RFCE | E1000_CTRL_TFCE);
-    
+
     switch (ctrl) {
         case (E1000_CTRL_RFCE | E1000_CTRL_TFCE):
             fcIndex = kFlowControlTypeRxTx;
             break;
-            
+
         case E1000_CTRL_RFCE:
             fcIndex = kFlowControlTypeRx;
             break;
-            
+
         case E1000_CTRL_TFCE:
             fcIndex = kFlowControlTypeTx;
             break;
-            
+
         default:
             fcIndex = kFlowControlTypeNone;
             break;
@@ -2305,13 +2216,12 @@ void IntelMausi::setLinkUp()
     if (phy->ops.cfg_on_link_up)
         phy->ops.cfg_on_link_up(hw);
 
-    intelEnableIRQ(intrMask);
+    intelEnableIRQ(&adapterData);
 
     linkUp = true;
 
 #ifdef __PRIVATE_SPI__
-    setLinkStatus((kIONetworkLinkValid | kIONetworkLinkActive | linkOpts), mediumTable[mediumIndex], mediumSpeed, NULL);
-    linkOpts = 0;
+    setLinkStatus((kIONetworkLinkValid | kIONetworkLinkActive), mediumTable[mediumIndex], mediumSpeed, NULL);
 
     /* Update poll params according to link speed. */
     bzero(&pollParams, sizeof(IONetworkPacketPollingParameters));
@@ -2332,7 +2242,7 @@ void IntelMausi::setLinkUp()
 
 #if __MAC_OS_X_VERSION_MIN_REQUIRED >= __MAC_10_9
     netif->setPacketPollingParameters(&pollParams, 0);
-    DebugLog("Ethernet [IntelMausi]: pollIntervalTime: %lluus\n", (pollParams.pollIntervalTime / 1000));
+    DebugLog("[IntelMausi]: pollIntervalTime: %lluus\n", (pollParams.pollIntervalTime / 1000));
 #endif
 
     /* Start output thread, statistics update and watchdog. */
@@ -2346,11 +2256,11 @@ void IntelMausi::setLinkUp()
     if (stalled) {
         txQueue->service();
         stalled = false;
-        DebugLog("Ethernet [IntelMausi]: Restart stalled queue!\n");
+        DebugLog("[IntelMausi]: Restart stalled queue!\n");
     }
 #endif /* __PRIVATE_SPI__ */
 
-    DebugLog("Ethernet [IntelMausi]: Link up on en%u, %s, %s, %s%s\n", netif->getUnitNumber(), speedName, duplexName, flowName, eeeName);
+    DebugLog("[IntelMausi]: Link up on en%u, %s, %s, %s%s\n", netif->getUnitNumber(), speedName, duplexName, flowName, eeeName);
     (void)flowName;
     (void)eeeName;
     (void)speedName;
@@ -2358,39 +2268,41 @@ void IntelMausi::setLinkUp()
 
     if (chipType >= board_pch_lpt)
         setMaxLatency(adapterData.link_speed);
-    
-    DebugLog("Ethernet [IntelMausi]: CTRL=0x%08x\n", intelReadMem32(E1000_CTRL));
-    DebugLog("Ethernet [IntelMausi]: CTRL_EXT=0x%08x\n", intelReadMem32(E1000_CTRL_EXT));
-    DebugLog("Ethernet [IntelMausi]: STATUS=0x%08x\n", intelReadMem32(E1000_STATUS));
-    DebugLog("Ethernet [IntelMausi]: RCTL=0x%08x\n", intelReadMem32(E1000_RCTL));
-    DebugLog("Ethernet [IntelMausi]: PSRCTL=0x%08x\n", intelReadMem32(E1000_PSRCTL));
-    DebugLog("Ethernet [IntelMausi]: FCRTL=0x%08x\n", intelReadMem32(E1000_FCRTL));
-    DebugLog("Ethernet [IntelMausi]: FCRTH=0x%08x\n", intelReadMem32(E1000_FCRTH));
-    DebugLog("Ethernet [IntelMausi]: RDLEN(0)=0x%08x\n", intelReadMem32(E1000_RDLEN(0)));
-    DebugLog("Ethernet [IntelMausi]: RDTR=0x%08x\n", intelReadMem32(E1000_RDTR));
-    DebugLog("Ethernet [IntelMausi]: RADV=0x%08x\n", intelReadMem32(E1000_RADV));
-    DebugLog("Ethernet [IntelMausi]: RXCSUM=0x%08x\n", intelReadMem32(E1000_RXCSUM));
-    DebugLog("Ethernet [IntelMausi]: RFCTL=0x%08x\n", intelReadMem32(E1000_RFCTL));
-    DebugLog("Ethernet [IntelMausi]: RXDCTL(0)=0x%08x\n", intelReadMem32(E1000_RXDCTL(0)));
-    DebugLog("Ethernet [IntelMausi]: RAL(0)=0x%08x\n", intelReadMem32(E1000_RAL(0)));
-    DebugLog("Ethernet [IntelMausi]: RAH(0)=0x%08x\n", intelReadMem32(E1000_RAH(0)));
-    DebugLog("Ethernet [IntelMausi]: MRQC=0x%08x\n", intelReadMem32(E1000_MRQC));
-    DebugLog("Ethernet [IntelMausi]: TARC(0)=0x%08x\n", intelReadMem32(E1000_TARC(0)));
-    DebugLog("Ethernet [IntelMausi]: TARC(1)=0x%08x\n", intelReadMem32(E1000_TARC(1)));
-    DebugLog("Ethernet [IntelMausi]: TCTL=0x%08x\n", intelReadMem32(E1000_TCTL));
-    DebugLog("Ethernet [IntelMausi]: TXDCTL(0)=0x%08x\n", intelReadMem32(E1000_TXDCTL(0)));
-    DebugLog("Ethernet [IntelMausi]: TXDCTL(1)=0x%08x\n", intelReadMem32(E1000_TXDCTL(1)));
-    DebugLog("Ethernet [IntelMausi]: TADV=0x%08x\n", intelReadMem32(E1000_TADV));
-    DebugLog("Ethernet [IntelMausi]: TIDV=0x%08x\n", intelReadMem32(E1000_TIDV));
-    DebugLog("Ethernet [IntelMausi]: MANC=0x%08x\n", intelReadMem32(E1000_MANC));
-    DebugLog("Ethernet [IntelMausi]: MANC2H=0x%08x\n", intelReadMem32(E1000_MANC2H));
-    DebugLog("Ethernet [IntelMausi]: LTRV=0x%08x\n", intelReadMem32(E1000_LTRV));
+
+    DebugLog("[IntelMausi]: CTRL=0x%08x\n", intelReadMem32(E1000_CTRL));
+    DebugLog("[IntelMausi]: CTRL_EXT=0x%08x\n", intelReadMem32(E1000_CTRL_EXT));
+    DebugLog("[IntelMausi]: STATUS=0x%08x\n", intelReadMem32(E1000_STATUS));
+    DebugLog("[IntelMausi]: RCTL=0x%08x\n", intelReadMem32(E1000_RCTL));
+    DebugLog("[IntelMausi]: PSRCTL=0x%08x\n", intelReadMem32(E1000_PSRCTL));
+    DebugLog("[IntelMausi]: FCRTL=0x%08x\n", intelReadMem32(E1000_FCRTL));
+    DebugLog("[IntelMausi]: FCRTH=0x%08x\n", intelReadMem32(E1000_FCRTH));
+    DebugLog("[IntelMausi]: RDLEN(0)=0x%08x\n", intelReadMem32(E1000_RDLEN(0)));
+    DebugLog("[IntelMausi]: RDTR=0x%08x\n", intelReadMem32(E1000_RDTR));
+    DebugLog("[IntelMausi]: RADV=0x%08x\n", intelReadMem32(E1000_RADV));
+    DebugLog("[IntelMausi]: RXCSUM=0x%08x\n", intelReadMem32(E1000_RXCSUM));
+    DebugLog("[IntelMausi]: RFCTL=0x%08x\n", intelReadMem32(E1000_RFCTL));
+    DebugLog("[IntelMausi]: RXDCTL(0)=0x%08x\n", intelReadMem32(E1000_RXDCTL(0)));
+    DebugLog("[IntelMausi]: RAL(0)=0x%08x\n", intelReadMem32(E1000_RAL(0)));
+    DebugLog("[IntelMausi]: RAH(0)=0x%08x\n", intelReadMem32(E1000_RAH(0)));
+    DebugLog("[IntelMausi]: MRQC=0x%08x\n", intelReadMem32(E1000_MRQC));
+    DebugLog("[IntelMausi]: TARC(0)=0x%08x\n", intelReadMem32(E1000_TARC(0)));
+    DebugLog("[IntelMausi]: TARC(1)=0x%08x\n", intelReadMem32(E1000_TARC(1)));
+    DebugLog("[IntelMausi]: TCTL=0x%08x\n", intelReadMem32(E1000_TCTL));
+    DebugLog("[IntelMausi]: TXDCTL(0)=0x%08x\n", intelReadMem32(E1000_TXDCTL(0)));
+    DebugLog("[IntelMausi]: TXDCTL(1)=0x%08x\n", intelReadMem32(E1000_TXDCTL(1)));
+    DebugLog("[IntelMausi]: TADV=0x%08x\n", intelReadMem32(E1000_TADV));
+    DebugLog("[IntelMausi]: TIDV=0x%08x\n", intelReadMem32(E1000_TIDV));
+    DebugLog("[IntelMausi]: MANC=0x%08x\n", intelReadMem32(E1000_MANC));
+    DebugLog("[IntelMausi]: MANC2H=0x%08x\n", intelReadMem32(E1000_MANC2H));
+    DebugLog("[IntelMausi]: LTRV=0x%08x\n", intelReadMem32(E1000_LTRV));
+    DebugLog("[IntelMausi]: wolCapable=%u", wolCapable);
+    DebugLog("[IntelMausi]: wolActive=%u", wolActive);
 }
 
 void IntelMausi::setLinkDown()
 {
     deadlockWarn = 0;
-    
+
 #ifdef __PRIVATE_SPI__
     /* Stop output thread and flush output queue. */
     netif->stopOutputThread();
@@ -2400,17 +2312,17 @@ void IntelMausi::setLinkDown()
     txQueue->stop();
     txQueue->flush();
 #endif /* __PRIVATE_SPI__ */
-    
+
     /* Update link status. */
     linkUp = false;
     setLinkStatus(kIONetworkLinkValid);
-    
+
     intelDown(&adapterData, true);
     intelConfigure(&adapterData);
     clear_bit(__E1000_DOWN, &adapterData.state);
-	intelEnableIRQ(intrMask);
+    intelEnableIRQ(&adapterData);
 
-    DebugLog("Ethernet [IntelMausi]: Link down on en%u\n", netif->getUnitNumber());
+    DebugLog("[IntelMausi]: Link down on en%u\n", netif->getUnitNumber());
 }
 
 inline void IntelMausi::intelGetChecksumResult(mbuf_t m, UInt32 status)
@@ -2421,7 +2333,7 @@ inline void IntelMausi::intelGetChecksumResult(mbuf_t m, UInt32 status)
 
         if (status & E1000_RXD_STAT_IPPCS)
             performed |= (MBUF_CSUM_DID_IP | MBUF_CSUM_IP_GOOD);
-        
+
         if (status & (E1000_RXD_STAT_TCPCS | E1000_RXD_STAT_UDPCS)) {
             performed |= (MBUF_CSUM_DID_DATA | MBUF_CSUM_PSEUDO_HDR);
             value = 0xffff; // fake a valid checksum value
@@ -2437,7 +2349,7 @@ bool IntelMausi::intelIdentifyChip()
     UInt32 i = 0;
     UInt16 id = deviceTable[i].pciDevId;
     bool result = false;
-    
+
     while (id) {
         if (id == pciDeviceData.device) {
             chip = i;
@@ -2451,17 +2363,17 @@ bool IntelMausi::intelIdentifyChip()
             adapterData.hw.mac.type = ei->mac;
             adapterData.max_hw_frame_size = ei->max_hw_frame_size;
             adapterData.bd_number = 0;
-            
+
             /* Set default EEE advertisement */
             if (adapterData.flags2 & FLAG2_HAS_EEE)
                 adapterData.eee_advert = MDIO_EEE_100TX | MDIO_EEE_1000T;
-            
+
             result = true;
             break;
         }
         id = deviceTable[++i].pciDevId;
     }
-    
+
 done:
     return result;
 }
@@ -2471,17 +2383,17 @@ bool IntelMausi::intelStart()
     struct e1000_hw *hw = &adapterData.hw;
     const struct e1000_info *ei = adapterData.ei;
     struct e1000_mac_info *mac = &hw->mac;
-    SInt32 rval = 0;
-    UInt16 eepromData = 0;
-	UInt16 eepromApmeMask = E1000_EEPROM_APME;
-    int error, i;
+    s32 ret_val = 0;
+    u16 eeprom_data = 0;
+    u16 eeprom_apme_mask = E1000_EEPROM_APME;
+    int err, i;
     bool result = false;
-    
+
     /* Setup some default values. */
     adapterData.rx_buffer_len = kRxBufferPktSize;
-	adapterData.max_frame_size = mtu + ETH_HLEN + ETH_FCS_LEN;
-	adapterData.min_frame_size = ETH_ZLEN + ETH_FCS_LEN;
-    
+    adapterData.max_frame_size = mtu + ETH_HLEN + ETH_FCS_LEN;
+    adapterData.min_frame_size = ETH_ZLEN + ETH_FCS_LEN;
+
     adapterData.rx_int_delay = 0;
     adapterData.rx_abs_int_delay = 0;
 
@@ -2494,163 +2406,162 @@ bool IntelMausi::intelStart()
 
     adapterData.flags2 |= (FLAG2_CRC_STRIPPING | FLAG2_DFLT_CRC_STRIPPING);
     adapterData.flags |= FLAG_READ_ONLY_NVM;
-    
+
     if (adapterData.flags2 & FLAG2_HAS_EEE)
         hw->dev_spec.ich8lan.eee_disable = false;
 
-#ifdef __PRIVATE_SPI__
-    linkOpts = 0;
-#endif /* __PRIVATE_SPI__ */
-
     initPCIPowerManagment(pciDevice, ei);
-    
-	/* Explicitly disable IRQ since the NIC can be in any state. */
-	intelDisableIRQ();
-    
-	set_bit(__E1000_DOWN, &adapterData.state);
-    
+
+    /* Explicitly disable IRQ since the NIC can be in any state. */
+    intelDisableIRQ();
+
+    set_bit(__E1000_DOWN, &adapterData.state);
+
     memcpy(&hw->mac.ops, ei->mac_ops, sizeof(hw->mac.ops));
-	memcpy(&hw->nvm.ops, ei->nvm_ops, sizeof(hw->nvm.ops));
-	memcpy(&hw->phy.ops, ei->phy_ops, sizeof(hw->phy.ops));
-    
-    if (hw->mac.type == e1000_ich8lan)
-        e1000e_set_kmrn_lock_loss_workaround_ich8lan(hw, true);
-    
-	hw->phy.autoneg_wait_to_complete = 0;
-    
-    error = ei->get_variants(&adapterData);
-    
-	if (error) {
-        IOLog("Ethernet [IntelMausi]: Failed to get adapter data with error %d.\n", error);
-		goto done;
+    memcpy(&hw->nvm.ops, ei->nvm_ops, sizeof(hw->nvm.ops));
+    memcpy(&hw->phy.ops, ei->phy_ops, sizeof(hw->phy.ops));
+
+    err = ei->get_variants(&adapterData);
+    if (err) {
+        IOLog("[IntelMausi]: Failed to get adapter data with error %d.\n", err);
+        goto done;
     }
-	if ((adapterData.flags & FLAG_IS_ICH) &&
-	    (adapterData.flags & FLAG_READ_ONLY_NVM) &&
+    if ((adapterData.flags & FLAG_IS_ICH) &&
+        (adapterData.flags & FLAG_READ_ONLY_NVM) &&
         (hw->mac.type < e1000_pch_spt))
-		e1000e_write_protect_nvm_ich8lan(hw);
-    
-	hw->phy.autoneg_wait_to_complete = 0;
-    
-	/* Copper options */
-	if (hw->phy.media_type == e1000_media_type_copper) {
-		hw->phy.mdix = AUTO_ALL_MODES;
-		hw->phy.disable_polarity_correction = 0;
-		hw->phy.ms_type = e1000_ms_hw_default;
-	}
-	if (hw->phy.ops.check_reset_block && hw->phy.ops.check_reset_block(hw))
-		IOLog("Ethernet [IntelMausi]: PHY reset is blocked due to SOL/IDER session.\n");
+        e1000e_write_protect_nvm_ich8lan(hw);
+
+    hw->mac.ops.get_bus_info(&adapterData.hw);
+
+    hw->phy.autoneg_wait_to_complete = 0;
+
+    /* Copper options */
+    if (hw->phy.media_type == e1000_media_type_copper) {
+        hw->phy.mdix = AUTO_ALL_MODES;
+        hw->phy.disable_polarity_correction = 0;
+        hw->phy.ms_type = e1000_ms_hw_default;
+    }
+
+    if (hw->phy.ops.check_reset_block && hw->phy.ops.check_reset_block(hw))
+        IOLog("[IntelMausi]: PHY reset is blocked due to SOL/IDER session.\n");
 
     if (intelEnableMngPassThru(hw))
-		adapterData.flags |= FLAG_MNG_PT_ENABLED;
+        adapterData.flags |= FLAG_MNG_PT_ENABLED;
 
-	/* before reading the NVM, reset the controller to
-	 * put the device in a known good starting state
-	 */
-	hw->mac.ops.reset_hw(hw);
-    
-	/* systems with ASPM and others may see the checksum fail on the first
-	 * attempt. Let's give it a few tries
-	 */
-	for (i = 0;; i++) {
-		if (e1000_validate_nvm_checksum(hw) >= 0)
-			break;
-        
-		if (i == 2) {
-			IOLog("Ethernet [IntelMausi]: The NVM Checksum Is Not Valid.\n");
-			goto error_eeprom;
+    /* before reading the NVM, reset the controller to
+     * put the device in a known good starting state
+     */
+    hw->mac.ops.reset_hw(hw);
+
+    /* systems with ASPM and others may see the checksum fail on the first
+     * attempt. Let's give it a few tries
+     */
+    for (i = 0;; i++) {
+        if (e1000_validate_nvm_checksum(hw) >= 0)
             break;
-		}
-	}
-	//intelEEPROMChecks(&adapterData);
-    
-	/* copy the MAC address */
-	if (e1000e_read_mac_addr(hw))
-		IOLog("Ethernet [IntelMausi]: NVM Read Error while reading MAC address.\n");
-    
-	if (!is_valid_ether_addr(mac->addr)) {
-		IOLog("Ethernet [IntelMausi]: Invalid MAC Address: %pM\n", mac->addr);
-		goto error_eeprom;
-	}
-	/* Initialize link parameters. User can change them with ethtool */
-	hw->mac.autoneg = 1;
-	adapterData.fc_autoneg = true;
-	hw->fc.requested_mode = e1000_fc_default;
-	hw->fc.current_mode = e1000_fc_default;
-	hw->phy.autoneg_advertised = 0x2f;
-    
-	/* Initial Wake on LAN setting - If APM wake is enabled in
-	 * the EEPROM, enable the ACPI Magic Packet filter
-	 */
-	if (adapterData.flags & FLAG_APME_IN_WUC) {
-		/* APME bit in EEPROM is mapped to WUC.APME */
-		eepromData = intelReadMem32(E1000_WUC);
-		eepromApmeMask = E1000_WUC_APME;
-        
-		if ((hw->mac.type > e1000_ich10lan) &&
-		    (eepromData & E1000_WUC_PHY_WAKE))
-			adapterData.flags2 |= FLAG2_HAS_PHY_WAKEUP;
-	} else if (adapterData.flags & FLAG_APME_IN_CTRL3) {
-		if (adapterData.flags & FLAG_APME_CHECK_PORT_B && (adapterData.hw.bus.func == 1))
-			rval = e1000_read_nvm(hw,  NVM_INIT_CONTROL3_PORT_B, 1, &eepromData);
-		else
-			rval = e1000_read_nvm(hw, NVM_INIT_CONTROL3_PORT_A, 1, &eepromData);
-	}
-    
-	/* fetch WoL from EEPROM */
-	if (rval)
-		DebugLog("Ethernet [IntelMausi]: NVM read error getting WoL initial values: %d\n", rval);
-	else if (eepromData & eepromApmeMask)
-		adapterData.eeprom_wol |= E1000_WUFC_MAG;
-    
-	/* now that we have the eeprom settings, apply the special cases
-	 * where the eeprom may be wrong or the board simply won't support
-	 * wake on lan on a particular port
-	 */
-	if (!(adapterData.flags & FLAG_HAS_WOL))
-		adapterData.eeprom_wol = 0;
-    
-	/* initialize the wol settings based on the eeprom settings */
-	adapterData.wol = adapterData.eeprom_wol;
-    
-	/* make sure adapter isn't asleep if manageability is enabled */
-	if (adapterData.wol || (adapterData.flags & FLAG_MNG_PT_ENABLED) || (hw->mac.ops.check_mng_mode(hw)))
-        pciDevice->enablePCIPowerManagement(kPCIPMCSPowerStateD0);
-    
-	/* save off EEPROM version number */
-	rval = e1000_read_nvm(hw, 5, 1, &adapterData.eeprom_vers);
-    
-	if (rval) {
-		DebugLog("Ethernet [IntelMausi]: NVM read error getting EEPROM version: %d\n", rval);
-		adapterData.eeprom_vers = 0;
-	}
-	/* reset the hardware with the new settings */
-	intelReset(&adapterData);
-    
-	/* Let the f/w know that the h/w is now under the control of the driver
-     * even in case the device has AMT in order to avoid problems after wakeup.
-	 */
-	e1000e_get_hw_control(&adapterData);
-        
-    intrMask = IMS_ENABLE_MASK;
-    
-    if ((hw->mac.type == e1000_pch_lpt) || (hw->mac.type == e1000_pch_spt)) {
-        intrMask |= E1000_IMS_ECCER;
+        if (i == 2) {
+            IOLog("[IntelMausi]: The NVM Checksum Is Not Valid.\n");
+            goto error_eeprom;
+            break;
+        }
     }
-    DebugLog("Ethernet [IntelMausi]: %s (Rev. %u), %02x:%02x:%02x:%02x:%02x:%02x\n",
+    //intelEEPROMChecks(&adapterData);
+
+    /* copy the MAC address */
+    if (e1000e_read_mac_addr(hw))
+        IOLog("[IntelMausi]: NVM Read Error while reading MAC address.\n");
+
+    if (!is_valid_ether_addr(mac->addr)) {
+        IOLog("[IntelMausi]: Invalid MAC Address: %pM\n", mac->addr);
+        goto error_eeprom;
+    }
+    /* Initialize link parameters. User can change them with ethtool */
+    hw->mac.autoneg = 1;
+    adapterData.fc_autoneg = true;
+    hw->fc.requested_mode = e1000_fc_default;
+    hw->fc.current_mode = e1000_fc_default;
+    hw->phy.autoneg_advertised = 0x2f;
+
+    /* Initial Wake on LAN setting - If APM wake is enabled in
+     * the EEPROM, enable the ACPI Magic Packet filter
+     */
+    if (adapterData.flags & FLAG_APME_IN_WUC) {
+        /* APME bit in EEPROM is mapped to WUC.APME */
+        eeprom_data = intelReadMem32(E1000_WUC);
+        eeprom_apme_mask = E1000_WUC_APME;
+        if ((hw->mac.type > e1000_ich10lan) &&
+            (eeprom_data & E1000_WUC_PHY_WAKE))
+            adapterData.flags2 |= FLAG2_HAS_PHY_WAKEUP;
+    } else if (adapterData.flags & FLAG_APME_IN_CTRL3) {
+        if (adapterData.flags & FLAG_APME_CHECK_PORT_B &&
+            (adapterData.hw.bus.func == 1))
+            ret_val = e1000_read_nvm(&adapterData.hw,
+                          NVM_INIT_CONTROL3_PORT_B,
+                          1, &eeprom_data);
+        else
+            ret_val = e1000_read_nvm(&adapterData.hw,
+                          NVM_INIT_CONTROL3_PORT_A,
+                          1, &eeprom_data);
+    }
+
+    /* fetch WoL from EEPROM */
+    if (ret_val)
+        DebugLog("[IntelMausi]: NVM read error getting WoL initial values: %d\n", ret_val);
+    else if (eeprom_data & eeprom_apme_mask)
+        adapterData.eeprom_wol |= E1000_WUFC_MAG;
+
+    /* now that we have the eeprom settings, apply the special cases
+     * where the eeprom may be wrong or the board simply won't support
+     * wake on lan on a particular port
+     */
+    if (!(adapterData.flags & FLAG_HAS_WOL))
+        adapterData.eeprom_wol = 0;
+
+    /* initialize the wol settings based on the eeprom settings */
+    adapterData.wol = adapterData.eeprom_wol;
+
+    /* make sure adapter isn't asleep if manageability is enabled */
+    if (adapterData.wol || (adapterData.flags & FLAG_MNG_PT_ENABLED) || (hw->mac.ops.check_mng_mode(hw)))
+        //device_wakeup_enable(&pdev->dev);
+        pciDevice->enablePCIPowerManagement(kPCIPMCSPowerStateD0);
+
+    /* save off EEPROM version number */
+    ret_val = e1000_read_nvm(hw, 5, 1, &adapterData.eeprom_vers);
+
+    if (ret_val) {
+        DebugLog("[IntelMausi]: NVM read error getting EEPROM version: %d\n", ret_val);
+        adapterData.eeprom_vers = 0;
+    }
+
+    /* init PTP hardware clock */
+    //e1000e_ptp_init(adapter);
+
+    /* reset the hardware with the new settings */
+    intelReset(&adapterData);
+
+    /* Let the f/w know that the h/w is now under the control of the driver
+     * even in case the device has AMT in order to avoid problems after wakeup.
+     */
+    e1000e_get_hw_control(&adapterData);
+    /*
+     if (!(adapter->flags & FLAG_HAS_AMT))
+         e1000e_get_hw_control(adapter);
+     */
+
+    DebugLog("[IntelMausi]: %s (Rev. %u), %02x:%02x:%02x:%02x:%02x:%02x\n",
           deviceTable[chip].deviceName, pciDeviceData.revision,
           mac->addr[0], mac->addr[1], mac->addr[2], mac->addr[3], mac->addr[4], mac->addr[5]);
     result = true;
-    
+
 done:
     return result;
-    
+
 error_eeprom:
-	if (hw->phy.ops.check_reset_block && !hw->phy.ops.check_reset_block(hw))
-		e1000_phy_hw_reset(hw);
-    
+    if (hw->phy.ops.check_reset_block && !hw->phy.ops.check_reset_block(hw))
+        e1000_phy_hw_reset(hw);
+
     goto done;
 }
-
 #pragma mark --- timer action methods ---
 
 void IntelMausi::timerAction(IOTimerEventSource *timer)
@@ -2658,7 +2569,7 @@ void IntelMausi::timerAction(IOTimerEventSource *timer)
     struct e1000_hw *hw = &adapterData.hw;
 
     if (!linkUp) {
-        DebugLog("Ethernet [IntelMausi]: Timer fired while link down.\n");
+        DebugLog("[IntelMausi]: Timer fired while link down.\n");
         goto done;
     }
     intelUpdateAdaptive(&adapterData.hw);
@@ -2670,7 +2581,7 @@ void IntelMausi::timerAction(IOTimerEventSource *timer)
     /* Enable EEE on 82579 after link up. */
     if (eeeMode) {
         e1000_get_phy_info(hw);
-        
+
         if (hw->phy.type >= e1000_phy_82579)
             intelEnableEEE(hw, eeeMode);
 
@@ -2678,71 +2589,71 @@ void IntelMausi::timerAction(IOTimerEventSource *timer)
     }
     updateStatistics(&adapterData);
     timerSource->setTimeoutMS(kTimeoutMS);
-    
+
 done:
     txDescDoneLast = txDescDoneCount;
-    
-    //DebugLog("timerAction() <===\n");
+
+    //DebugLog("[IntelMausi]: timerAction() <===\n");
 }
 
 void IntelMausi::updateStatistics(struct e1000_adapter *adapter)
 {
     struct e1000_hw *hw = &adapter->hw;
-    
-	adapter->stats.crcerrs += intelReadMem32(E1000_CRCERRS);
-	adapter->stats.gprc += intelReadMem32(E1000_GPRC);
-	adapter->stats.gorc += intelReadMem32(E1000_GORCL);
-	intelReadMem32(E1000_GORCH);		/* Clear gorc */
-	adapter->stats.bprc += intelReadMem32(E1000_BPRC);
-	adapter->stats.mprc += intelReadMem32(E1000_MPRC);
-	adapter->stats.roc += intelReadMem32(E1000_ROC);
-    
-	adapter->stats.mpc += intelReadMem32(E1000_MPC);
-    
-	/* Half-duplex statistics */
-	if (adapter->link_duplex == HALF_DUPLEX) {
-		if (adapter->flags2 & FLAG2_HAS_PHY_STATS) {
-			e1000e_update_phy_stats(adapter);
-		} else {
-			adapter->stats.scc += intelReadMem32(E1000_SCC);
-			adapter->stats.ecol += intelReadMem32(E1000_ECOL);
-			adapter->stats.mcc += intelReadMem32(E1000_MCC);
-			adapter->stats.latecol += intelReadMem32(E1000_LATECOL);
-			adapter->stats.dc += intelReadMem32(E1000_DC);
-            
-			hw->mac.collision_delta = intelReadMem32(E1000_COLC);
-            
-			if ((hw->mac.type != e1000_82574) &&
-			    (hw->mac.type != e1000_82583))
-				adapter->stats.tncrs += intelReadMem32(E1000_TNCRS);
-		}
-		adapter->stats.colc += hw->mac.collision_delta;
-	}
-    
-	adapter->stats.xonrxc += intelReadMem32(E1000_XONRXC);
-	adapter->stats.xontxc += intelReadMem32(E1000_XONTXC);
-	adapter->stats.xoffrxc += intelReadMem32(E1000_XOFFRXC);
-	adapter->stats.xofftxc += intelReadMem32(E1000_XOFFTXC);
-	adapter->stats.gptc += intelReadMem32(E1000_GPTC);
-	adapter->stats.gotc += intelReadMem32(E1000_GOTCL);
-	intelReadMem32(E1000_GOTCH);		/* Clear gotc */
-	adapter->stats.rnbc += intelReadMem32(E1000_RNBC);
-	adapter->stats.ruc += intelReadMem32(E1000_RUC);
-    
-	adapter->stats.mptc += intelReadMem32(E1000_MPTC);
-	adapter->stats.bptc += intelReadMem32(E1000_BPTC);
-    
-	/* used for adaptive IFS */
-    
-	hw->mac.tx_packet_delta = intelReadMem32(E1000_TPT);
-	adapter->stats.tpt += hw->mac.tx_packet_delta;
-    
-	adapter->stats.algnerrc += intelReadMem32(E1000_ALGNERRC);
-	adapter->stats.rxerrc += intelReadMem32(E1000_RXERRC);
-	adapter->stats.cexterr += intelReadMem32(E1000_CEXTERR);
-	adapter->stats.tsctc += intelReadMem32(E1000_TSCTC);
-	adapter->stats.tsctfc += intelReadMem32(E1000_TSCTFC);
-    
+
+    adapter->stats.crcerrs += intelReadMem32(E1000_CRCERRS);
+    adapter->stats.gprc += intelReadMem32(E1000_GPRC);
+    adapter->stats.gorc += intelReadMem32(E1000_GORCL);
+    intelReadMem32(E1000_GORCH);        /* Clear gorc */
+    adapter->stats.bprc += intelReadMem32(E1000_BPRC);
+    adapter->stats.mprc += intelReadMem32(E1000_MPRC);
+    adapter->stats.roc += intelReadMem32(E1000_ROC);
+
+    adapter->stats.mpc += intelReadMem32(E1000_MPC);
+
+    /* Half-duplex statistics */
+    if (adapter->link_duplex == HALF_DUPLEX) {
+        if (adapter->flags2 & FLAG2_HAS_PHY_STATS) {
+            e1000e_update_phy_stats(adapter);
+        } else {
+            adapter->stats.scc += intelReadMem32(E1000_SCC);
+            adapter->stats.ecol += intelReadMem32(E1000_ECOL);
+            adapter->stats.mcc += intelReadMem32(E1000_MCC);
+            adapter->stats.latecol += intelReadMem32(E1000_LATECOL);
+            adapter->stats.dc += intelReadMem32(E1000_DC);
+
+            hw->mac.collision_delta = intelReadMem32(E1000_COLC);
+
+            if ((hw->mac.type != e1000_82574) &&
+                (hw->mac.type != e1000_82583))
+                adapter->stats.tncrs += intelReadMem32(E1000_TNCRS);
+        }
+        adapter->stats.colc += hw->mac.collision_delta;
+    }
+
+    adapter->stats.xonrxc += intelReadMem32(E1000_XONRXC);
+    adapter->stats.xontxc += intelReadMem32(E1000_XONTXC);
+    adapter->stats.xoffrxc += intelReadMem32(E1000_XOFFRXC);
+    adapter->stats.xofftxc += intelReadMem32(E1000_XOFFTXC);
+    adapter->stats.gptc += intelReadMem32(E1000_GPTC);
+    adapter->stats.gotc += intelReadMem32(E1000_GOTCL);
+    intelReadMem32(E1000_GOTCH);        /* Clear gotc */
+    adapter->stats.rnbc += intelReadMem32(E1000_RNBC);
+    adapter->stats.ruc += intelReadMem32(E1000_RUC);
+
+    adapter->stats.mptc += intelReadMem32(E1000_MPTC);
+    adapter->stats.bptc += intelReadMem32(E1000_BPTC);
+
+    /* used for adaptive IFS */
+
+    hw->mac.tx_packet_delta = intelReadMem32(E1000_TPT);
+    adapter->stats.tpt += hw->mac.tx_packet_delta;
+
+    adapter->stats.algnerrc += intelReadMem32(E1000_ALGNERRC);
+    adapter->stats.rxerrc += intelReadMem32(E1000_RXERRC);
+    adapter->stats.cexterr += intelReadMem32(E1000_CEXTERR);
+    adapter->stats.tsctc += intelReadMem32(E1000_TSCTC);
+    adapter->stats.tsctfc += intelReadMem32(E1000_TSCTFC);
+
     netStats->inputPackets = (UInt32)adapter->stats.gprc;
     netStats->inputErrors = (UInt32)(adapter->stats.rxerrc + adapter->stats.crcerrs
         + adapter->stats.algnerrc + adapter->stats.ruc + adapter->stats.roc
@@ -2761,21 +2672,21 @@ void IntelMausi::updateStatistics(struct e1000_adapter *adapter)
     etherStats->dot3StatsEntry.carrierSenseErrors = (UInt32)adapter->stats.cexterr;
     etherStats->dot3StatsEntry.frameTooLongs = (UInt32)adapter->stats.roc;
     etherStats->dot3StatsEntry.missedFrames = (UInt32)adapter->stats.mpc;
-    
+
     etherStats->dot3RxExtraEntry.frameTooShorts = (UInt32)adapter->stats.ruc;
 }
 
 bool IntelMausi::checkForDeadlock()
 {
     bool deadlock = false;
-    
+
     if (forceReset) {
         etherStats->dot3TxExtraEntry.resets++;
         intelRestart();
         deadlock = true;
         eeeMode = 0;
     }
-    
+
     if ((txDescDoneCount == txDescDoneLast) && (txNumFreeDesc < kNumTxDesc)) {
         if (++deadlockWarn >= kTxDeadlockTreshhold) {
             mbuf_t m = txBufArray[txDirtyIndex].mbuf;
@@ -2783,40 +2694,40 @@ bool IntelMausi::checkForDeadlock()
 
 #ifdef DEBUG
             UInt16 index;
-			UInt16 i;
+            UInt16 i;
             UInt16 stalledIndex = txDirtyIndex;
 #endif
             //UInt8 data;
-            
-            IOLog("Ethernet [IntelMausi]: Tx stalled? Resetting chipset. txDirtyDescIndex=%u, STATUS=0x%08x, TCTL=0x%08x.\n", txDirtyIndex, intelReadMem32(E1000_STATUS), intelReadMem32(E1000_TCTL));
+
+            IOLog("[IntelMausi]: Tx stalled? Resetting chipset. txDirtyDescIndex=%u, STATUS=0x%08x, TCTL=0x%08x.\n", txDirtyIndex, intelReadMem32(E1000_STATUS), intelReadMem32(E1000_TCTL));
 
 #ifdef DEBUG
             for (i = 0; i < 30; i++) {
                 index = ((stalledIndex - 20 + i) & kTxDescMask);
 
-                IOLog("Ethernet [IntelMausi]: desc[%u]: lower=0x%08x, upper=0x%08x, addr=0x%016llx, mbuf=0x%016llx, len=%u.\n", index, txDescArray[index].lower.data, txDescArray[index].upper.data, txDescArray[index].buffer_addr, (UInt64)txBufArray[index].mbuf, txBufArray[index].pad);
+                IOLog("[IntelMausi]: desc[%u]: lower=0x%08x, upper=0x%08x, addr=0x%016llx, mbuf=0x%016llx, len=%u.\n", index, txDescArray[index].lower.data, txDescArray[index].upper.data, txDescArray[index].buffer_addr, (UInt64)txBufArray[index].mbuf, txBufArray[index].pad);
             }
 #endif
             if (m) {
                 pktSize = (UInt32)mbuf_pkthdr_len(m);
-                IOLog("Ethernet [IntelMausi]: packet size=%u, header size=%u.\n", pktSize, (UInt32)mbuf_len(m));
+                IOLog("[IntelMausi]: packet size=%u, header size=%u.\n", pktSize, (UInt32)mbuf_len(m));
 /*
 #ifdef DEBUG
-                IOLog("Ethernet [IntelMausi]: MAC-header: ");
+                IOLog("[IntelMausi]: MAC-header: ");
                 for (i = 0; i < 14; i++) {
                     mbuf_copydata(m, i, 1, &data);
                     IOLog(" 0x%02x", data);
                 }
                 IOLog("\n");
-                
-                IOLog("Ethernet [IntelMausi]: IP-header: ");
+
+                IOLog("[IntelMausi]: IP-header: ");
                 for (i = 14; i < 34; i++) {
                     mbuf_copydata(m, i, 1, &data);
                     IOLog(" 0x%02x", data);
                 }
                 IOLog("\n");
-                
-                IOLog("Ethernet [IntelMausi]: TCP-Header / Data: ");
+
+                IOLog("[IntelMausi]: TCP-Header / Data: ");
                 for (i = 34; i < 100; i++) {
                     mbuf_copydata(m, i, 1, &data);
                     IOLog(" 0x%02x", data);
@@ -2829,7 +2740,7 @@ bool IntelMausi::checkForDeadlock()
             intelRestart();
             deadlock = true;
         } else {
-            DebugLog("Ethernet [IntelMausi]: Check tx ring for progress. txNumFreeDesc=%u\n", txNumFreeDesc);
+            DebugLog("[IntelMausi]: Check tx ring for progress. txNumFreeDesc=%u\n", txNumFreeDesc);
             /* Flush pending tx descriptors. */
             intelFlushDescriptors();
             /* Check the transmitter ring. */
@@ -2839,60 +2750,4 @@ bool IntelMausi::checkForDeadlock()
         deadlockWarn = 0;
     }
     return deadlock;
-}
-
-#pragma mark --- miscellaneous functions ---
-
-static inline void prepareTSO4(mbuf_t m, UInt32 *mssHeaderSize, UInt32 *payloadSize)
-{
-    struct iphdr *ipHdr = (struct iphdr *)((UInt8 *)mbuf_data(m) + ETHER_HDR_LEN);
-    struct tcphdr *tcpHdr = (struct tcphdr *)((UInt8 *)ipHdr + sizeof(struct iphdr));
-    UInt16 *addr = (UInt16 *)&ipHdr->saddr;
-    UInt32 csum32 = 6;
-    UInt32 plen = (UInt32)mbuf_pkthdr_len(m);
-    UInt32 hlen = (tcpHdr->th_off << 2) + kMinL4HdrOffsetV4;
-    
-    ipHdr->tot_len = 0;
-
-    csum32 += ntohs(*addr++);
-    csum32 += ntohs(*addr++);
-    csum32 += ntohs(*addr++);
-    csum32 += ntohs(*addr);
-    csum32 += (csum32 >> 16);
-    tcpHdr->th_sum = htons((UInt16)csum32);
-    
-    /* Flush the cache lines in order to enforce writeback. */
-    asm volatile ("clflush %0" : "=m" (ipHdr->tot_len));
-    asm volatile ("clflush %0" : "=m" (tcpHdr->th_sum));
-
-    *mssHeaderSize = ((*mssHeaderSize << 16) | (hlen << 8));
-    *payloadSize = plen - hlen;
-}
-
-static inline void prepareTSO6(mbuf_t m, UInt32 *mssHeaderSize, UInt32 *payloadSize)
-{
-    struct ip6_hdr *ip6Hdr = (struct ip6_hdr *)((UInt8 *)mbuf_data(m) + ETHER_HDR_LEN);
-    struct tcphdr *tcpHdr = (struct tcphdr *)((UInt8 *)ip6Hdr + sizeof(struct ip6_hdr));
-    UInt8  *addr = (UInt8 *)&ip6Hdr->ip6_src;
-    UInt32 csum32 = 6;
-    UInt32 plen = (UInt32)mbuf_pkthdr_len(m);
-    UInt32 hlen = (tcpHdr->th_off << 2) + kMinL4HdrOffsetV6;
-    UInt32 i;
-    
-    ip6Hdr->ip6_ctlun.ip6_un1.ip6_un1_plen = 0;
-
-    for (i = 0; i < 16; i++) {
-        csum32 += ((UInt16)addr[0] << 8U) + addr[1];
-        addr += sizeof(UInt16);
-    }
-    
-    csum32 += (csum32 >> 16);
-    tcpHdr->th_sum = htons((UInt16)csum32);
-    
-    /* Flush the cache lines in order to enforce writeback. */
-    asm volatile ("clflush %0" : "=m" (ip6Hdr->ip6_ctlun.ip6_un1.ip6_un1_plen));
-    asm volatile ("clflush %0" : "=m" (tcpHdr->th_sum));
-    
-    *mssHeaderSize = ((*mssHeaderSize << 16) | (hlen << 8));
-    *payloadSize = plen - hlen;
 }

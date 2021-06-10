@@ -10,9 +10,11 @@ jobs:
     runs-on: macos-latest
     strategy:
       matrix:
-        conf:
-          - "Release"
-          - "Debug"
+        include:
+          - conf: "Release"
+            out: "RELEASE"
+          - conf: "Debug"
+            out: "DEBUG"
     steps:
       - uses: actions/checkout@v2
       - uses: actions/checkout@v2
@@ -24,5 +26,5 @@ jobs:
         with:
           name: IntelMausi-WOL-${{ matrix.conf }}
           path: |
-            build/${{ matrix.conf }}/IntelMausi-WOL-**-${{ matrix.conf }}.zip
+            build/${{ matrix.conf }}/IntelMausi-WOL-**-${{ matrix.out }}.zip
           if-no-files-found: error

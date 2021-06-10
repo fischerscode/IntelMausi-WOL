@@ -3,6 +3,7 @@ name: Build Kext
 on:
   - push
   - pull_request
+  - workflow_dispatch
 
 jobs:
   build-kext:

@@ -7,7 +7,7 @@ on:
 
 jobs:
   build-kext:
-    runs-on: macOS-latest
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v2
       - uses: actions/checkout@v2
@@ -16,11 +16,11 @@ jobs:
           path: MacKernelSDK
       - run: xcodebuild -configuration Release
       - run: xcodebuild -configuration Debug
-      - uses: actions/upload-artifact@v1
+      - uses: actions/upload-artifact@v2
         with:
           path: build/Release/IntelMausi-WOL-**-RELEASE.zip
           if-no-files-found: error
-      - uses: actions/upload-artifact@v1
+      - uses: actions/upload-artifact@v2
         with:
           path: build/Debug/IntelMausi-WOL-**-DEBUG.zip
           if-no-files-found: error

@@ -1,9 +1,9 @@
-name: Build Kext
+name: Append to release
 
 on:
-  - push
-  - pull_request
-  - workflow_dispatch
+  release:
+    types:
+      - "created"
 
 jobs:
   build-kext:
@@ -20,12 +20,11 @@ jobs:
           repository: acidanthera/MacKernelSDK
           path: MacKernelSDK
       - run: xcodebuild -configuration ${{ matrix.conf }}
-      - uses: actions/upload-artifact@v2
+      - name: upload to release
+        uses: svenstaro/upload-release-action@v2
         with:
-          name: IntelMausi-WOL-${{ matrix.conf }}
-          path: |
-            IntelMausi-WOL.kext
-            IntelMausi-WOL.kext.dSYM
-            IntelSnowMausi-WOL.kext
-            IntelSnowMausi-WOL.kext.dSYM
-          if-no-files-found: error
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: build/${{ matrix.conf }}/**.zip
+          asset_name: ${{ matrix.output-name }}
+          tag: ${{ github.ref }}
+          overwrite: true
